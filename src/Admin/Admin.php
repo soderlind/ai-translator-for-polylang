@@ -10,6 +10,7 @@ declare(strict_types=1);
 namespace AiTranslatorForPolylang\Admin;
 
 use AiTranslatorForPolylang\Creator;
+use AiTranslatorForPolylang\Translation\JobState;
 use AiTranslatorForPolylang\Translation\TranslationJob;
 use WP_Post;
 
@@ -134,27 +135,29 @@ class Admin {
 			return $states;
 		}
 
-		$status = TranslationJob::status( $post->ID );
+		$state = $this->job->state( $post->ID );
+		if ( ! $state ) {
+			return $states;
+		}
 
-		if ( TranslationJob::STATUS_PENDING === $status || TranslationJob::STATUS_PROCESSING === $status ) {
+		if ( $state->is_active() ) {
 			$label = esc_html(
 				/* translators: %s: Language name. */
-				sprintf( __( 'Translating to %s…', 'ai-translator-for-polylang' ), $this->language_name( $post->ID ) )
+				sprintf( __( 'Translating to %s…', 'ai-translator-for-polylang' ), $state->language_name() )
 			);
 			$states['aitfp'] = $this->post_state_markup( $post->ID, $label );
-		} elseif ( TranslationJob::STATUS_DONE === $status ) {
+		} elseif ( JobState::DONE === $state->status ) {
 			$states['aitfp'] = $this->post_state_markup(
 				$post->ID,
 				esc_html__( 'AI translation complete', 'ai-translator-for-polylang' )
 			);
-		} elseif ( TranslationJob::STATUS_FAILED === $status ) {
-			$error           = (string) get_post_meta( $post->ID, TranslationJob::META_ERROR, true );
+		} elseif ( JobState::FAILED === $state->status ) {
 			$states['aitfp'] = $this->post_state_markup(
 				$post->ID,
 				sprintf(
 					'<details class="aitfp-translation-error"><summary>%1$s</summary><p>%2$s</p></details>',
 					esc_html__( 'Translation failed — view error', 'ai-translator-for-polylang' ),
-					esc_html( $error )
+					esc_html( $state->error )
 				)
 			);
 		}
@@ -177,12 +180,7 @@ class Admin {
 			wp_die( esc_html__( 'This translation cannot be retried.', 'ai-translator-for-polylang' ), '', [ 'response' => 403 ] );
 		}
 
-		$this->job->queue(
-			$post->ID,
-			(array) get_post_meta( $post->ID, TranslationJob::META_LANGUAGE, true ),
-			(int) get_post_meta( $post->ID, TranslationJob::META_SOURCE, true ),
-			get_current_user_id()
-		);
+		$this->job->requeue( $post->ID, get_current_user_id() );
 
 		$this->redirect_to_list( $post->post_type, $post->ID );
 	}
@@ -215,8 +213,8 @@ class Admin {
 			return;
 		}
 
-		$status = TranslationJob::status( $post_id );
-		if ( $is_editor && ! $this->is_active( $post_id ) ) {
+		$state = $this->job->state( $post_id );
+		if ( $is_editor && ! $state?->is_active() ) {
 			return;
 		}
 
@@ -231,12 +229,13 @@ class Admin {
 			'aitfp-admin-status',
 			'aitfpTranslationStatus',
 			[
-				'ajaxUrl'  => admin_url( 'admin-ajax.php' ),
-				'nonce'    => wp_create_nonce( self::ACTION_STATUS ),
-				'postId'   => $post_id,
-				'status'   => $status,
-				'interval' => 10000,
-				'strings'  => [
+				'ajaxUrl'   => admin_url( 'admin-ajax.php' ),
+				'nonce'     => wp_create_nonce( self::ACTION_STATUS ),
+				'postId'    => $post_id,
+				'active'    => (bool) $state?->is_active(),
+				'retryable' => (bool) $state?->can_retry(),
+				'interval'  => 10000,
+				'strings'   => [
 					'pending'       => __( 'Translation to %s is queued.', 'ai-translator-for-polylang' ),
 					'processing'    => __( 'Translating to %s in the background.', 'ai-translator-for-polylang' ),
 					'autoUpdate'    => __( 'This notice will update automatically.', 'ai-translator-for-polylang' ),
@@ -271,8 +270,8 @@ class Admin {
 			);
 		}
 
-		$status = TranslationJob::status( $post_id );
-		if ( ! in_array( $status, [ TranslationJob::STATUS_PENDING, TranslationJob::STATUS_PROCESSING, TranslationJob::STATUS_DONE, TranslationJob::STATUS_FAILED ], true ) ) {
+		$state = $this->job->state( $post_id );
+		if ( ! $state ) {
 			wp_send_json_error(
 				[ 'message' => __( 'Translation status is unavailable.', 'ai-translator-for-polylang' ) ],
 				404
@@ -281,11 +280,13 @@ class Admin {
 
 		wp_send_json_success(
 			[
-				'status'   => $status,
-				'language' => $this->language_name( $post_id ),
-				'error'    => (string) get_post_meta( $post_id, TranslationJob::META_ERROR, true ),
-				'editUrl'  => get_edit_post_link( $post_id, 'raw' ) ?: '',
-				'retryUrl' => TranslationJob::STATUS_FAILED === $status ? $this->retry_url( $post_id ) : '',
+				'status'    => $state->status,
+				'active'    => $state->is_active(),
+				'retryable' => $state->can_retry(),
+				'language'  => $state->language_name(),
+				'error'     => $state->error,
+				'editUrl'   => get_edit_post_link( $post_id, 'raw' ) ?: '',
+				'retryUrl'  => $state->can_retry() ? $this->retry_url( $post_id ) : '',
 			]
 		);
 	}
@@ -304,7 +305,7 @@ class Admin {
 
 		$screen  = get_current_screen();
 		$post_id = isset( $_GET['post'] ) ? absint( $_GET['post'] ) : 0; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only status display.
-		if ( $screen && 'post' === $screen->base && $post_id && $this->is_active( $post_id ) && current_user_can( 'edit_post', $post_id ) ) {
+		if ( $screen && 'post' === $screen->base && $post_id && $this->job->state( $post_id )?->is_active() && current_user_can( 'edit_post', $post_id ) ) {
 			echo $this->status_notice( $post_id, true ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Escaped in status_notice().
 		}
 	}
@@ -332,26 +333,7 @@ class Admin {
 	 * @return bool
 	 */
 	private function can_retry( WP_Post $post ): bool {
-		$status = TranslationJob::status( $post->ID );
-		if ( '' === $status || TranslationJob::STATUS_DONE === $status || ! current_user_can( 'edit_post', $post->ID ) ) {
-			return false;
-		}
-
-		return TranslationJob::STATUS_FAILED === $status || $this->job->is_stale( $post->ID );
-	}
-
-	/**
-	 * Whether a translation is waiting or actively being translated.
-	 *
-	 * @param int $post_id Post ID.
-	 * @return bool
-	 */
-	private function is_active( int $post_id ): bool {
-		return in_array(
-			TranslationJob::status( $post_id ),
-			[ TranslationJob::STATUS_PENDING, TranslationJob::STATUS_PROCESSING ],
-			true
-		);
+		return (bool) $this->job->state( $post->ID )?->can_retry() && current_user_can( 'edit_post', $post->ID );
 	}
 
 	/**
@@ -362,11 +344,12 @@ class Admin {
 	 * @return string
 	 */
 	private function status_notice( int $post_id, bool $is_editor = false ): string {
-		$status       = TranslationJob::status( $post_id );
-		$language     = $this->language_name( $post_id );
+		$state        = $this->job->state( $post_id );
+		$status       = $state ? $state->status : '';
+		$language     = $state ? $state->language_name() : '';
 		$notice_class = 'notice-info';
 
-		if ( TranslationJob::STATUS_PENDING === $status ) {
+		if ( JobState::PENDING === $status ) {
 			$message = esc_html(
 				sprintf(
 					/* translators: %s: Language name. */
@@ -379,7 +362,7 @@ class Admin {
 			} else {
 				$message .= ' ' . esc_html__( 'This notice will update automatically.', 'ai-translator-for-polylang' );
 			}
-		} elseif ( TranslationJob::STATUS_PROCESSING === $status ) {
+		} elseif ( JobState::PROCESSING === $status ) {
 			$message = esc_html(
 				sprintf(
 					/* translators: %s: Language name. */
@@ -392,7 +375,7 @@ class Admin {
 			} else {
 				$message .= ' ' . esc_html__( 'This notice will update automatically.', 'ai-translator-for-polylang' );
 			}
-		} elseif ( TranslationJob::STATUS_DONE === $status ) {
+		} elseif ( JobState::DONE === $status ) {
 			$notice_class = 'notice-success';
 			if ( $is_editor ) {
 				$message = esc_html__( 'Translation is complete. Reload this editor to see the translated draft.', 'ai-translator-for-polylang' );
@@ -413,14 +396,14 @@ class Admin {
 					);
 				}
 			}
-		} elseif ( TranslationJob::STATUS_FAILED === $status ) {
+		} elseif ( JobState::FAILED === $status ) {
 			$notice_class = 'notice-error';
 			$message      = esc_html(
 				sprintf(
 					/* translators: 1: Language name, 2: Error message. */
 					__( 'Translation to %1$s failed: %2$s', 'ai-translator-for-polylang' ),
 					$language,
-					(string) get_post_meta( $post_id, TranslationJob::META_ERROR, true )
+					$state->error
 				)
 			);
 			$message     .= ' ' . sprintf(
@@ -431,6 +414,14 @@ class Admin {
 		} else {
 			$notice_class = 'notice-warning';
 			$message      = esc_html__( 'Translation status is unavailable. Check the post list for its current state.', 'ai-translator-for-polylang' );
+		}
+
+		if ( $state && $state->is_stale() ) {
+			$message .= ' ' . sprintf(
+				'<a href="%1$s">%2$s</a>',
+				esc_url( $this->retry_url( $post_id ) ),
+				esc_html__( 'Retry translation', 'ai-translator-for-polylang' )
+			);
 		}
 
 		return sprintf(
@@ -455,17 +446,6 @@ class Admin {
 			$post_id,
 			$content
 		);
-	}
-
-	/**
-	 * Name of the language a post is being translated to.
-	 *
-	 * @param int $post_id Post ID.
-	 * @return string
-	 */
-	private function language_name( int $post_id ): string {
-		$language = get_post_meta( $post_id, TranslationJob::META_LANGUAGE, true );
-		return is_array( $language ) ? (string) ( $language['name'] ?? '' ) : '';
 	}
 
 	/**
