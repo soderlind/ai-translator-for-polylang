@@ -5,7 +5,7 @@ Requires at least: 7.0
 Tested up to: 7.0
 Requires PHP: 8.3
 Requires Plugins: polylang
-Stable tag: 0.1.0
+Stable tag: 0.1.1
 License: GPL v2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -68,6 +68,9 @@ Actions: `aitfp_translated`, `aitfp_translation_failed`.
 See README.md for arguments.
 
 == Changelog ==
+
+= 0.1.1 =
+* Add a translation template and WP-CLI internationalization tooling.
 
 = 0.1.0 =
 * Initial release.
