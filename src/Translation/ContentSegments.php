@@ -37,6 +37,16 @@ final class ContentSegments {
 	private const SKIPPED_ELEMENTS = [ 'CODE', 'KBD', 'SAMP' ];
 
 	/**
+	 * Elements whose content is a single plain-text token that is translated.
+	 */
+	private const TEXT_ELEMENTS = [ 'TEXTAREA', 'TITLE' ];
+
+	/**
+	 * Block attribute keys whose subtrees hold design settings, never text.
+	 */
+	private const STRUCTURAL_BLOCK_ATTRIBUTES = [ 'style' ];
+
+	/**
 	 * Matches the inside of a block delimiter comment that has JSON attributes.
 	 */
 	private const DELIMITER_PATTERN = '/^(\s+wp:[a-z][a-z0-9_-]*(?:\/[a-z][a-z0-9_-]*)?\s+)(\{.*\})(\s*\/?\s*)$/s';
@@ -94,7 +104,7 @@ final class ContentSegments {
 	 * @return string
 	 */
 	private static function map( string $html, callable $callback, array $html_attributes, array $block_attributes ): string {
-		$processor       = new WP_HTML_Tag_Processor( $html );
+		$processor       = self::processor( $html );
 		$html_attributes = array_map( 'strtolower', $html_attributes );
 		$skipped_depth   = 0;
 
@@ -105,7 +115,7 @@ final class ContentSegments {
 						$text        = $processor->get_modifiable_text();
 						$replacement = self::map_text( $text, $callback );
 						if ( $replacement !== $text ) {
-							$processor->set_modifiable_text( $replacement );
+							$processor->set_text( $replacement );
 						}
 					}
 					break;
@@ -113,7 +123,7 @@ final class ContentSegments {
 				case '#comment':
 					if ( WP_HTML_Tag_Processor::COMMENT_AS_HTML_COMMENT === $processor->get_comment_type() ) {
 						$comment     = $processor->get_modifiable_text();
-						$replacement = self::map_delimiter( $comment, $callback, $block_attributes );
+						$replacement = self::map_delimiter( $comment, $callback, $html_attributes, $block_attributes );
 						if ( $replacement !== $comment ) {
 							$processor->set_modifiable_text( $replacement );
 						}
@@ -126,12 +136,49 @@ final class ContentSegments {
 					}
 					if ( ! $processor->is_tag_closer() ) {
 						self::map_attributes( $processor, $callback, $html_attributes );
+						if ( 0 === $skipped_depth && in_array( $processor->get_tag(), self::TEXT_ELEMENTS, true ) ) {
+							$text        = $processor->get_modifiable_text();
+							$replacement = self::map_text( $text, $callback );
+							if ( $replacement !== $text ) {
+								$processor->set_modifiable_text( $replacement );
+							}
+						}
 					}
 					break;
 			}
 		}
 
 		return $processor->get_updated_html();
+	}
+
+	/**
+	 * Returns a tag processor that can write text nodes without encoding quotes.
+	 *
+	 * set_modifiable_text() encodes " and ' in text nodes, which breaks shortcode
+	 * attributes such as [gallery ids="1,2"] and stops wptexturize() from curling
+	 * quotes. Quotes are safe in text nodes, so only < > & are encoded.
+	 *
+	 * @param string $html Markup.
+	 * @return WP_HTML_Tag_Processor
+	 */
+	private static function processor( string $html ): WP_HTML_Tag_Processor {
+		return new class( $html ) extends WP_HTML_Tag_Processor {
+			/**
+			 * Replaces the current text node, encoding only < > &.
+			 *
+			 * @param string $text Plain text.
+			 */
+			public function set_text( string $text ): void {
+				if ( ! $this->set_modifiable_text( $text ) ) {
+					return;
+				}
+
+				$update = $this->lexical_updates['modifiable text'] ?? null;
+				if ( $update instanceof \WP_HTML_Text_Replacement ) {
+					$update->text = strtr( $text, [ '<' => '&lt;', '>' => '&gt;', '&' => '&amp;' ] );
+				}
+			}
+		};
 	}
 
 	/**
@@ -181,10 +228,11 @@ final class ContentSegments {
 	 *
 	 * @param string                   $comment          Comment text, e.g. ` wp:image {"id":1} /`.
 	 * @param callable(string): string $callback         Callback.
+	 * @param list<string>             $html_attributes  Lower-case translatable HTML attribute names.
 	 * @param list<string>             $block_attributes Translatable keys.
 	 * @return string
 	 */
-	private static function map_delimiter( string $comment, callable $callback, array $block_attributes ): string {
+	private static function map_delimiter( string $comment, callable $callback, array $html_attributes, array $block_attributes ): string {
 		if ( ! preg_match( self::DELIMITER_PATTERN, $comment, $parts ) ) {
 			return $comment;
 		}
@@ -195,7 +243,7 @@ final class ContentSegments {
 		}
 
 		$changed    = false;
-		$attributes = self::map_json( $attributes, $callback, $block_attributes, $changed );
+		$attributes = self::map_json( $attributes, $callback, $html_attributes, $block_attributes, $changed );
 
 		return $changed ? $parts[1] . self::serialize_block_attributes( $attributes ) . $parts[3] : $comment;
 	}
@@ -203,16 +251,20 @@ final class ContentSegments {
 	/**
 	 * Recursively maps string values stored under translatable keys.
 	 *
+	 * Rich-text values (containing markup) are mapped like post content, so only
+	 * their text reaches the callback. Design settings under "style" are skipped.
+	 *
 	 * @param mixed                    $value            Decoded JSON value.
 	 * @param callable(string): string $callback         Callback.
+	 * @param list<string>             $html_attributes  Lower-case translatable HTML attribute names.
 	 * @param list<string>             $block_attributes Translatable keys.
 	 * @param bool                     $changed          Set to true when a value changes.
 	 * @return mixed
 	 */
-	private static function map_json( mixed $value, callable $callback, array $block_attributes, bool &$changed ): mixed {
+	private static function map_json( mixed $value, callable $callback, array $html_attributes, array $block_attributes, bool &$changed ): mixed {
 		if ( is_array( $value ) ) {
 			foreach ( $value as $index => $item ) {
-				$value[ $index ] = self::map_json( $item, $callback, $block_attributes, $changed );
+				$value[ $index ] = self::map_json( $item, $callback, $html_attributes, $block_attributes, $changed );
 			}
 			return $value;
 		}
@@ -222,14 +274,20 @@ final class ContentSegments {
 		}
 
 		foreach ( get_object_vars( $value ) as $key => $item ) {
+			if ( in_array( (string) $key, self::STRUCTURAL_BLOCK_ATTRIBUTES, true ) ) {
+				continue;
+			}
+
 			if ( is_string( $item ) && in_array( (string) $key, $block_attributes, true ) ) {
-				$replacement = self::map_text( $item, $callback );
+				$replacement = str_contains( $item, '<' )
+					? self::map( $item, $callback, $html_attributes, $block_attributes )
+					: self::map_text( $item, $callback );
 				if ( $replacement !== $item ) {
 					$value->$key = $replacement;
 					$changed     = true;
 				}
 			} elseif ( is_array( $item ) || $item instanceof \stdClass ) {
-				$value->$key = self::map_json( $item, $callback, $block_attributes, $changed );
+				$value->$key = self::map_json( $item, $callback, $html_attributes, $block_attributes, $changed );
 			}
 		}
 

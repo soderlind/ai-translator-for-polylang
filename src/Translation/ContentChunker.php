@@ -132,6 +132,30 @@ final class ContentChunker {
 	 */
 	private static function split_freeform( string $text ): array {
 		$parts = preg_split( '/(?<=\n\n)/', $text, -1, PREG_SPLIT_NO_EMPTY );
-		return false === $parts ? [ $text ] : $parts;
+		if ( false === $parts ) {
+			return [ $text ];
+		}
+
+		// Keep elements whose text is not translated in one segment, so a later
+		// chunk never starts inside them.
+		$segments = [];
+		$current  = '';
+		$depth    = 0;
+		foreach ( $parts as $part ) {
+			$current .= $part;
+			preg_match_all( '/<(\/?)(?:pre|code|kbd|samp|script|style|textarea)\b/i', $part, $tags );
+			foreach ( $tags[1] as $closer ) {
+				$depth = max( 0, $depth + ( '' === $closer ? 1 : -1 ) );
+			}
+			if ( 0 === $depth ) {
+				$segments[] = $current;
+				$current    = '';
+			}
+		}
+		if ( '' !== $current ) {
+			$segments[] = $current;
+		}
+
+		return $segments;
 	}
 }

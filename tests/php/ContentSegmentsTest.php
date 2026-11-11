@@ -59,4 +59,39 @@ final class ContentSegmentsTest extends TestCase {
 
 		$this->assertSame( [], ContentSegments::extract( $html ) );
 	}
+
+	public function test_keeps_quotes_in_text_so_shortcodes_still_work(): void {
+		$html = '<p>See [gallery ids="1,2"] below</p>';
+
+		$this->assertSame(
+			'<p>Se [gallery ids="1,2"] nedenfor, det er Pers \'hage\' &amp; drivhus</p>',
+			ContentSegments::replace( $html, [ 'Se [gallery ids="1,2"] nedenfor, det er Pers \'hage\' & drivhus' ] )
+		);
+	}
+
+	public function test_translates_textarea_text(): void {
+		$html = '<textarea placeholder="Your message">Write here</textarea>';
+
+		$this->assertSame( [ 'Your message', 'Write here' ], ContentSegments::extract( $html ) );
+		$this->assertSame(
+			'<textarea placeholder="Din melding">Skriv her</textarea>',
+			ContentSegments::replace( $html, [ 'Din melding', 'Skriv her' ] )
+		);
+	}
+
+	public function test_translates_only_the_text_of_rich_text_block_attributes(): void {
+		$html = '<!-- wp:example/card {"content":"\u003cstrong\u003eAbout us\u003c/strong\u003e"} /-->';
+
+		$this->assertSame( [ 'About us' ], ContentSegments::extract( $html ) );
+		$this->assertSame(
+			'<!-- wp:example/card {"content":"\u003cstrong\u003eOm oss\u003c/strong\u003e"} /-->',
+			ContentSegments::replace( $html, [ 'Om oss' ] )
+		);
+	}
+
+	public function test_skips_style_attributes(): void {
+		$html = '<!-- wp:example/button {"text":"Click me","style":{"color":{"text":"var:preset|color|contrast"}}} /-->';
+
+		$this->assertSame( [ 'Click me' ], ContentSegments::extract( $html ) );
+	}
 }

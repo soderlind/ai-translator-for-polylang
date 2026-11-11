@@ -16,6 +16,16 @@ final class ContentChunkerTest extends TestCase {
 
 	private const PARAGRAPH = "<!-- wp:paragraph -->\n<p>%s</p>\n<!-- /wp:paragraph -->";
 
+	public function test_split_keeps_classic_code_in_one_chunk(): void {
+		$code    = "<pre><code>first()\n\nsecond()</code></pre>\n\n";
+		$content = "<p>Intro text</p>\n\n" . $code . '<p>Outro text</p>';
+
+		$chunks = ContentChunker::split( $content, 20 );
+
+		$this->assertSame( $content, implode( '', $chunks ) );
+		$this->assertContains( $code, $chunks );
+	}
+
 	public function test_split_never_breaks_nested_blocks(): void {
 		$group   = "<!-- wp:group {\"layout\":{\"type\":\"constrained\"}} -->\n<div class=\"wp-block-group\">"
 			. sprintf( self::PARAGRAPH, str_repeat( 'a', 40 ) )
