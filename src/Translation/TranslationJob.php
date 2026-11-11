@@ -47,9 +47,10 @@ class TranslationJob {
 	/**
 	 * Constructor.
 	 *
-	 * @param Translator $translator Translator.
+	 * @param Translator    $translator Translator.
+	 * @param TextGenerator $generator  The translator's text generator, whose requests refresh the job heartbeat.
 	 */
-	public function __construct( private Translator $translator ) {}
+	public function __construct( private Translator $translator, private TextGenerator $generator ) {}
 
 	/**
 	 * Registers the cron hook.
@@ -128,7 +129,7 @@ class TranslationJob {
 		try {
 			return $this->run_locked( $post_id, $token );
 		} finally {
-			$this->translator->before_request( null );
+			$this->generator->before_request( null );
 			$this->release_lock( $post_id, $token );
 		}
 	}
@@ -153,7 +154,7 @@ class TranslationJob {
 			set_time_limit( 0 );
 		}
 
-		$this->translator->before_request( fn(): bool => $this->heartbeat( $post_id, $token ) );
+		$this->generator->before_request( fn(): bool => $this->heartbeat( $post_id, $token ) );
 
 		// Save as the requesting user so kses and capabilities match a normal edit.
 		$previous_user = get_current_user_id();

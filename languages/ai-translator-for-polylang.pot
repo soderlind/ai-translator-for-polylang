@@ -9,7 +9,7 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"POT-Creation-Date: 2026-11-11T22:55:43+00:00\n"
+"POT-Creation-Date: 2026-11-11T23:19:15+00:00\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "X-Generator: WP-CLI 2.12.0\n"
 "X-Domain: ai-translator-for-polylang\n"
@@ -157,32 +157,32 @@ msgstr ""
 msgid "Translation status is unavailable. Check the post list for its current state."
 msgstr ""
 
-#: src/Translation/TranslationJob.php:125
-msgid "This post is already being translated."
-msgstr ""
-
-#: src/Translation/TranslationJob.php:148
-msgid "Nothing to translate for this post."
-msgstr ""
-
-#: src/Translation/TranslationJob.php:171
-#: src/Translation/TranslationJob.php:251
-#: src/Translation/Translator.php:213
-msgid "Another worker took over this translation."
-msgstr ""
-
-#: src/Translation/TranslationJob.php:262
-msgid "The post was edited while it was being translated, so the translation was not saved. Retry to translate the current version."
-msgstr ""
-
-#: src/Translation/Translator.php:166
-msgid "The AI response did not return one translation per text segment, so it was not saved."
-msgstr ""
-
-#: src/Translation/Translator.php:205
+#: src/Translation/AiClientGenerator.php:82
 msgid "The WordPress AI Client is not available. WordPress 7.0 or later is required."
 msgstr ""
 
-#: src/Translation/Translator.php:229
+#: src/Translation/AiClientGenerator.php:90
+#: src/Translation/TranslationJob.php:172
+#: src/Translation/TranslationJob.php:252
+msgid "Another worker took over this translation."
+msgstr ""
+
+#: src/Translation/AiClientGenerator.php:106
 msgid "The AI provider could not be reached. Check Settings → Connectors and retry."
+msgstr ""
+
+#: src/Translation/PostContent.php:114
+msgid "The AI response did not return one translation per text segment, so it was not saved."
+msgstr ""
+
+#: src/Translation/TranslationJob.php:126
+msgid "This post is already being translated."
+msgstr ""
+
+#: src/Translation/TranslationJob.php:149
+msgid "Nothing to translate for this post."
+msgstr ""
+
+#: src/Translation/TranslationJob.php:263
+msgid "The post was edited while it was being translated, so the translation was not saved. Retry to translate the current version."
 msgstr ""

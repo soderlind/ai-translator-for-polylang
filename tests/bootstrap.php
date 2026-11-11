@@ -15,3 +15,4 @@ $root = dirname( __DIR__ );
 require_once $root . '/vendor/autoload.php';
 require_once $root . '/vendor/johnpbloch/wordpress-core/wp-includes/html-api/html5-named-character-references.php';
 require_once __DIR__ . '/php/wp-stubs.php';
+require_once __DIR__ . '/php/ai-client-stubs.php';
