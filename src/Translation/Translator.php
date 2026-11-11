@@ -55,7 +55,7 @@ class Translator {
 	}
 
 	/**
-	 * Translates post content, chunk by chunk, preserving block markup.
+	 * Translates post content, changing only its text segments.
 	 *
 	 * @param string               $content  Post content.
 	 * @param array<string,string> $language Target language ( name, locale ).
@@ -68,17 +68,26 @@ class Translator {
 		 * @param int $chunk_size Characters per chunk.
 		 */
 		$chunk_size = (int) apply_filters( 'aitfp_content_chunk_size', self::DEFAULT_CHUNK_SIZE );
-		$translated = '';
+		/**
+		 * Filters the HTML attributes whose values are translated, e.g. alt and title.
+		 *
+		 * @param list<string> $attributes Attribute names.
+		 */
+		$html_attributes = (array) apply_filters( 'aitfp_translatable_html_attributes', PostContent::HTML_ATTRIBUTES );
+		/**
+		 * Filters the block attribute keys whose string values are translated, e.g. label and caption.
+		 *
+		 * @param list<string> $attributes Block attribute keys.
+		 */
+		$block_attributes = (array) apply_filters( 'aitfp_translatable_block_attributes', PostContent::BLOCK_ATTRIBUTES );
 
-		foreach ( ContentChunker::split( $content, max( 500, $chunk_size ) ) as $chunk ) {
-			$result = $this->translate_chunk( $chunk, $language );
-			if ( is_wp_error( $result ) ) {
-				return $result;
-			}
-			$translated .= $result;
-		}
-
-		return $translated;
+		return PostContent::translate(
+			$content,
+			fn( array $segments ) => $this->translate_segments( $segments, $language ),
+			max( 500, $chunk_size ),
+			$html_attributes,
+			$block_attributes
+		);
 	}
 
 	/**
@@ -106,36 +115,17 @@ class Translator {
 			return $result;
 		}
 
-		return trim( ContentChunker::strip_code_fences( $result ) );
+		return trim( self::strip_code_fences( $result ) );
 	}
 
 	/**
-	 * Translates the text segments of one content chunk, leaving all markup untouched.
+	 * Asks the AI to translate a list of text segments.
 	 *
-	 * @param string               $chunk    Content chunk.
+	 * @param list<string>         $segments Segments in document order.
 	 * @param array<string,string> $language Target language.
-	 * @return string|WP_Error
+	 * @return array<mixed>|WP_Error The decoded reply, or an empty list when it is not JSON; PostContent checks its shape.
 	 */
-	private function translate_chunk( string $chunk, array $language ) {
-		/**
-		 * Filters the HTML attributes whose values are translated, e.g. alt and title.
-		 *
-		 * @param list<string> $attributes Attribute names.
-		 */
-		$html_attributes = (array) apply_filters( 'aitfp_translatable_html_attributes', ContentSegments::HTML_ATTRIBUTES );
-		/**
-		 * Filters the block attribute keys whose string values are translated, e.g. label and caption.
-		 *
-		 * @param list<string> $attributes Block attribute keys.
-		 */
-		$block_attributes = (array) apply_filters( 'aitfp_translatable_block_attributes', ContentSegments::BLOCK_ATTRIBUTES );
-
-		$segments = ContentSegments::extract( $chunk, $html_attributes, $block_attributes );
-		if ( [] === $segments ) {
-			// Nothing human-readable to translate (whitespace, empty blocks, separators).
-			return $chunk;
-		}
-
+	private function translate_segments( array $segments, array $language ) {
 		$instruction = sprintf(
 			'You are a professional translator. The user sends a JSON array of text segments from a WordPress post, in document order. '
 			. 'Translate every segment into %1$s (%2$s). '
@@ -148,45 +138,26 @@ class Translator {
 		);
 		$payload = (string) json_encode( $segments, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES );
 
-		$attempts = 2;
-		for ( $attempt = 1; $attempt <= $attempts; $attempt++ ) {
-			$result = $this->generate( $payload, $instruction, 'content', $language );
-			if ( is_wp_error( $result ) ) {
-				return $result;
-			}
-
-			$translations = self::parse_segments( $result, count( $segments ) );
-			if ( null !== $translations ) {
-				return ContentSegments::replace( $chunk, $translations, $html_attributes, $block_attributes );
-			}
+		$result = $this->generate( $payload, $instruction, 'content', $language );
+		if ( is_wp_error( $result ) ) {
+			return $result;
 		}
 
-		return new WP_Error(
-			'aitfp_segment_mismatch',
-			__( 'The AI response did not return one translation per text segment, so it was not saved.', 'ai-translator-for-polylang' )
-		);
+		$translations = json_decode( trim( self::strip_code_fences( $result ) ), true );
+		return is_array( $translations ) ? $translations : [];
 	}
 
 	/**
-	 * Parses the model's JSON array of translated segments.
+	 * Removes a Markdown code fence that some models wrap their answer in.
 	 *
-	 * @param string $response Model output.
-	 * @param int    $expected Number of segments sent.
-	 * @return list<string>|null Null when the response is not a list of $expected strings.
+	 * @param string $text Model output.
+	 * @return string
 	 */
-	private static function parse_segments( string $response, int $expected ): ?array {
-		$translations = json_decode( trim( ContentChunker::strip_code_fences( $response ) ), true );
-		if ( ! is_array( $translations ) || ! array_is_list( $translations ) || count( $translations ) !== $expected ) {
-			return null;
+	private static function strip_code_fences( string $text ): string {
+		if ( preg_match( '/^\s*```[a-zA-Z0-9_-]*[ \t]*\n(.*)\n\s*```\s*$/s', $text, $match ) ) {
+			return $match[1];
 		}
-
-		foreach ( $translations as $translation ) {
-			if ( ! is_string( $translation ) ) {
-				return null;
-			}
-		}
-
-		return array_map( 'trim', $translations );
+		return $text;
 	}
 
 	/**

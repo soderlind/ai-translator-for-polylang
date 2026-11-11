@@ -122,7 +122,8 @@ state() {
 	echo 'title_changed=', \$src && get_post(\$src)->post_title !== \$p->post_title ? 1 : 0, PHP_EOL;
 	echo 'excerpt_changed=', \$src && get_post(\$src)->post_excerpt !== \$p->post_excerpt ? 1 : 0, PHP_EOL;
 	echo 'content_changed=', \$src && get_post(\$src)->post_content !== \$p->post_content ? 1 : 0, PHP_EOL;
-	echo 'blocks_equal=', \$src && AiTranslatorForPolylang\Translation\ContentChunker::block_signature(get_post(\$src)->post_content) === AiTranslatorForPolylang\Translation\ContentChunker::block_signature(\$p->post_content) ? 1 : 0, PHP_EOL;
+	\$names = function (\$c) { \$out = []; \$walk = function (\$bs) use (&\$walk, &\$out) { foreach (\$bs as \$b) { \$out[] = \$b['blockName']; \$walk(\$b['innerBlocks']); } }; \$walk(parse_blocks(\$c)); return \$out; };
+	echo 'blocks_equal=', \$src && \$names(get_post(\$src)->post_content) === \$names(\$p->post_content) ? 1 : 0, PHP_EOL;
 	echo 'urls_kept=', str_contains(\$p->post_content, 'https://example.com/soil') && str_contains(\$p->post_content, 'https://example.com/tomato.jpg') && str_contains(\$p->post_content, '[gallery ids=\"1,2\"]') ? 1 : 0, PHP_EOL;
 	echo 'parses=', count(array_filter(parse_blocks(\$p->post_content), fn(\$b) => \$b['blockName'])), PHP_EOL;
 	echo 'cats=', implode(',', wp_get_post_categories($1)), PHP_EOL;
