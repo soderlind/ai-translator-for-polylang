@@ -26,4 +26,5 @@ jobs:
       - name: Upload zip to release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: gh release upload "${{ github.event.release.tag_name }}" ai-translator-for-polylang.zip --clobber
+          TAG: ${{ github.event.release.tag_name }}
+        run: gh release upload "$TAG" ai-translator-for-polylang.zip --clobber

@@ -63,12 +63,13 @@ class Command {
 			WP_CLI::error( $missing ? sprintf( 'Unknown language or translation already exists. Choose one of: %s', implode( ', ', $missing ) ) : 'The post is already translated into every language.' );
 		}
 
-		$translation_id = $this->creator->create( $post, $language );
+		$async          = (bool) WP_CLI\Utils\get_flag_value( $assoc_args, 'async', false );
+		$translation_id = $this->creator->create( $post, $language, $async );
 		if ( is_wp_error( $translation_id ) ) {
 			WP_CLI::error( $translation_id );
 		}
 
-		if ( WP_CLI\Utils\get_flag_value( $assoc_args, 'async', false ) ) {
+		if ( $async ) {
 			WP_CLI::success( sprintf( 'Created translation %d and queued AI translation to %s.', $translation_id, $language['name'] ) );
 			return;
 		}

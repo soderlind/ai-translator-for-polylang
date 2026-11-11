@@ -11,7 +11,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Polylang's **Add a translation** (+) link now creates a linked draft and queues an AI translation through the WordPress AI Client.
 - The draft is created the way Polylang creates one: menu order, comment and ping status, translated parent, sticky state, and synced taxonomies and custom fields are copied.
 - Title, excerpt and content are translated in the background with WP-Cron. WP-Cron starts right away, even when `DISABLE_WP_CRON` is set.
-- Content is sent in chunks that only split between blocks. The block structure of each result is checked and a damaged result is retried once.
+- Content is sent in chunks that only split between blocks. Each result's block delimiters, HTML tags and block JSON are checked, and a damaged result is retried once.
+- Only one worker translates a post at a time. A per-post lock with a heartbeat is refreshed before every AI request, and a worker that loses its lock does not save.
+- Synchronous `wp aitfp translate` runs in the foreground only and never schedules a cron event.
 - An AI result is not saved if the draft was edited during translation.
 - The post list shows **Translating to {language}…** and **Translation failed** labels. Hover over the failed label to see the error.
 - **Retry translation** row action for failed jobs and for jobs stuck in processing for more than 15 minutes.

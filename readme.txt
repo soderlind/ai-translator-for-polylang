@@ -20,7 +20,8 @@ AI Translator for Polylang changes what Polylang's "Add a translation" (+) butto
 * Works from the + button you already use in post lists.
 * Creates the draft the way Polylang does: it copies menu order, comment and ping status, translated parent, sticky state, and the taxonomies and custom fields Polylang syncs.
 * Translates in the background with WP-Cron. The post list shows the progress.
-* Keeps block markup intact. Content is sent in chunks that split only between blocks, and the block structure of each result is checked. A broken result is retried once and never saved.
+* Keeps block markup intact. Content is sent in chunks that split only between blocks, and each result's block structure, HTML tags and block JSON are checked. A broken result is retried once and never saved.
+* Only one worker translates a post at a time, so retries and CLI runs can't race each other.
 * Never overwrites manual edits. If the draft is edited during translation, the AI result is thrown away.
 * A "Retry translation" row action for failed or stuck jobs.
 * WP-CLI commands: `wp aitfp translate` and `wp aitfp run`.

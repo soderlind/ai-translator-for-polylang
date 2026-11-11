@@ -67,15 +67,16 @@ class Creator {
 	 *
 	 * @param WP_Post                                        $post     Source post.
 	 * @param array{code:string, name:string, locale:string} $language Target language.
+	 * @param bool                                           $schedule Whether to translate in WP-Cron. Pass false when the caller runs the job itself.
 	 * @return int|WP_Error New post ID.
 	 */
-	public function create( WP_Post $post, array $language ) {
+	public function create( WP_Post $post, array $language, bool $schedule = true ) {
 		$post_id = $this->polylang->create_translation( $post, $language['code'] );
 		if ( is_wp_error( $post_id ) ) {
 			return $post_id;
 		}
 
-		$this->job->queue( $post_id, $language, $post->ID, get_current_user_id() );
+		$this->job->queue( $post_id, $language, $post->ID, get_current_user_id(), $schedule );
 
 		return $post_id;
 	}

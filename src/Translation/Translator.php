@@ -29,6 +29,22 @@ class Translator {
 	public const DEFAULT_TIMEOUT = 180;
 
 	/**
+	 * Called before every AI request. Returning false aborts the translation.
+	 *
+	 * @var (callable(): bool)|null
+	 */
+	private $before_request = null;
+
+	/**
+	 * Sets a callback that runs before every AI request, e.g. to refresh a job heartbeat.
+	 *
+	 * @param (callable(): bool)|null $callback Callback, or null to remove it.
+	 */
+	public function before_request( ?callable $callback ): void {
+		$this->before_request = $callback;
+	}
+
+	/**
 	 * Translates post content, chunk by chunk, preserving block markup.
 	 *
 	 * @param string               $content  Post content.
@@ -91,7 +107,7 @@ class Translator {
 	 * @return string|WP_Error
 	 */
 	private function translate_chunk( string $chunk, array $language ) {
-		if ( '' === trim( wp_strip_all_tags( $chunk ) ) ) {
+		if ( ! ContentChunker::has_translatable_text( $chunk ) ) {
 			// Nothing human-readable to translate (whitespace, empty blocks, separators).
 			return $chunk;
 		}
@@ -106,7 +122,6 @@ class Translator {
 			$language['locale']
 		);
 
-		$expected = ContentChunker::block_signature( $chunk );
 		$attempts = 2;
 		for ( $attempt = 1; $attempt <= $attempts; $attempt++ ) {
 			$result = $this->generate( $chunk, $instruction, 'content', $language );
@@ -115,14 +130,14 @@ class Translator {
 			}
 
 			$result = ContentChunker::strip_code_fences( $result );
-			if ( ContentChunker::block_signature( $result ) === $expected ) {
+			if ( ContentChunker::is_intact( $chunk, $result ) ) {
 				return $this->preserve_outer_whitespace( $chunk, $result );
 			}
 		}
 
 		return new WP_Error(
 			'aitfp_block_markup_mismatch',
-			__( 'The AI response changed the block structure of the content, so it was not saved.', 'ai-translator-for-polylang' )
+			__( 'The AI response changed the block structure or HTML of the content, so it was not saved.', 'ai-translator-for-polylang' )
 		);
 	}
 
@@ -140,6 +155,13 @@ class Translator {
 			return new WP_Error(
 				'aitfp_ai_client_missing',
 				__( 'The WordPress AI Client is not available. WordPress 7.0 or later is required.', 'ai-translator-for-polylang' )
+			);
+		}
+
+		if ( $this->before_request && false === ( $this->before_request )() ) {
+			return new WP_Error(
+				'aitfp_lock_lost',
+				__( 'Another worker took over this translation.', 'ai-translator-for-polylang' )
 			);
 		}
 

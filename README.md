@@ -20,8 +20,10 @@ Click Polylang's **Add a translation** (+) button and get a linked draft that th
 ### What keeps the content safe
 
 - Content goes to the AI in chunks (6000 characters by default). Chunks only split between top-level blocks, or between paragraphs in classic content.
-- The plugin checks the block structure of each translated chunk. If the AI changed it, the plugin tries once more and then marks the job failed. It never saves broken block markup.
-- If someone edits the draft while it is being translated, the plugin throws away the AI result instead of overwriting their changes.
+- The plugin checks each translated chunk: block delimiters, the HTML tag sequence and the JSON in the block comments. If the AI broke any of them, the plugin tries once more and then marks the job failed. It never saves broken markup.
+- Images with `alt` or `title` text are translated even when they have no caption.
+- If someone edits the draft while it is being translated, the plugin throws away the AI result instead of overwriting their changes. It compares the title, excerpt and content as well as the modified time.
+- Only one worker translates a post at a time, using a lock in the options table. The worker refreshes the lock before every AI request. A lock with no refresh for 15 minutes can be taken over, and a worker that loses its lock stops without saving.
 - The job saves as the user who asked for the translation, so kses and capability checks work as they do in a normal edit.
 
 ### Retrying

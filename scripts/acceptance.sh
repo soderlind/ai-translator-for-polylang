@@ -183,7 +183,51 @@ OUT=$(wpc aitfp run "$T1" --user="$AT_USER")
 has "re-run succeeds" "$OUT" "Success: Translated post $T1"
 check "re-run status done" "$(ev "echo get_post_meta($T1, '_aitfp_status', true);")" done
 
-echo "== 5. Edit during translation is not overwritten"
+echo "== 5. Worker lock"
+LOCKQ() { ev "global \$wpdb; echo \$wpdb->get_var(\$wpdb->prepare(\"SELECT COUNT(*) FROM {\$wpdb->options} WHERE option_name LIKE %s\", '_aitfp_lock_%'));"; }
+check "no lock rows left after runs" "$(LOCKQ)" 0
+setlock() { ev "global \$wpdb; \$wpdb->replace(\$wpdb->options, ['option_name' => '_aitfp_lock_$T1', 'option_value' => 'other|' . (time() - $2), 'autoload' => 'off']);" >/dev/null; }
+setlock "$T1" 0
+BEFORE=$(ev "echo get_post($T1)->post_modified_gmt;")
+OUT=$(wpc aitfp run "$T1" --user="$AT_USER")
+has "held lock blocks a second worker" "$OUT" "already being translated"
+check "blocked worker changed nothing" "$(ev "echo get_post($T1)->post_modified_gmt;")" "$BEFORE"
+setlock "$T1" 1000
+OUT=$(wpc aitfp run "$T1" --user="$AT_USER")
+has "stale lock is taken over" "$OUT" "Success: Translated post $T1"
+check "lock released after takeover" "$(LOCKQ)" 0
+cat >"$TMP/steal-lock.php" <<'PHP'
+<?php
+WP_CLI::add_wp_hook( 'aitfp_prompt_builder', static function ( $builder, $field ) {
+	global $wpdb;
+	if ( 'content' === $field ) {
+		$wpdb->update( $wpdb->options, [ 'option_value' => 'other|' . time() ], [ 'option_name' => '_aitfp_lock_' . (int) getenv( 'AT_POST' ) ] );
+	}
+	return $builder;
+}, 10, 2 );
+PHP
+BEFORE=$(ev "echo get_post($T1)->post_modified_gmt;")
+OUT=$(AT_POST=$T1 wpc aitfp run "$T1" --user="$AT_USER" --require="$TMP/steal-lock.php")
+has "worker that lost its lock stops" "$OUT" "Another worker took over"
+check "worker that lost its lock did not save" "$(ev "echo get_post($T1)->post_modified_gmt;")" "$BEFORE"
+check "new owner's lock left in place" "$(LOCKQ)" 1
+ev "global \$wpdb; \$wpdb->delete(\$wpdb->options, ['option_name' => '_aitfp_lock_$T1']);" >/dev/null
+cat >"$TMP/log-schedule.php" <<'PHP'
+<?php
+WP_CLI::add_wp_hook( 'schedule_event', static function ( $event ) {
+	if ( $event && 'aitfp_translate_post' === $event->hook ) {
+		file_put_contents( getenv( 'AT_LOG' ), 'scheduled' );
+	}
+	return $event;
+} );
+PHP
+: >"$TMP/schedule.log"
+AT_LOG="$TMP/schedule.log" wpc aitfp translate "$D" --language="$TGT_LANG" --user="$AT_USER" --require="$TMP/log-schedule.php" >/dev/null
+check "synchronous translate never schedules cron" "$(cat "$TMP/schedule.log")" ""
+check "synchronous translate finished" "$(ev "echo get_post_meta(pll_get_post($D, '$TGT_LANG'), '_aitfp_status', true);")" done
+ev "wp_delete_post(pll_get_post($D, '$TGT_LANG'), true);" >/dev/null
+
+echo "== 6. Edit during translation is not overwritten"
 cat >"$TMP/edit-midway.php" <<'PHP'
 <?php
 WP_CLI::add_wp_hook( 'aitfp_prompt_builder', static function ( $builder, $field ) {
@@ -204,13 +248,13 @@ check "status failed"            "$(get status "$S")" failed
 check "manual edit kept"         "$(get title "$S")" "Manual edit"
 has   "error message stored"     "$(get error "$S")" "edited while it was being translated"
 
-echo "== 6. Admin: post states and row actions"
+echo "== 7. Admin: post states and row actions"
 OUT=$(ev "\$p = get_post($T1); echo implode('|', apply_filters('display_post_states', [], \$p)), PHP_EOL, implode('|', array_keys(apply_filters('post_row_actions', [], \$p)));")
 has "failed state label"     "$OUT" "Translation failed"
 has "retry row action"       "$OUT" "aitfp_retry"
 check "no retry on source post" "$(ev "echo (int) isset(apply_filters('post_row_actions', [], get_post($A))['aitfp_retry']);")" 0
 
-echo "== 7. Admin HTTP flow (+ link, notice, retry, nonce checks)"
+echo "== 8. Admin HTTP flow (+ link, notice, retry, nonce checks)"
 AUTH=$(ev '
 $exp = time() + HOUR_IN_SECONDS; $token = WP_Session_Tokens::get_instance((int) getenv("AITFP_AT_UID"))->create($exp);
 $logged = wp_generate_auth_cookie((int) getenv("AITFP_AT_UID"), $exp, "logged_in", $token); $secure = str_starts_with(admin_url(), "https:"); $auth = wp_generate_auth_cookie((int) getenv("AITFP_AT_UID"), $exp, $secure ? "secure_auth" : "auth", $token);
@@ -262,7 +306,7 @@ check "retry block structure kept"       "$(get blocks_equal "$S")" 1
 R=$(curlc "$RETRY")
 has "retry refused once done" "$R" "403"
 
-echo "== 8. Deleting a queued translation unschedules it"
+echo "== 9. Deleting a queued translation unschedules it"
 cat >"$TMP/no-spawn.php" <<'PHP'
 <?php
 WP_CLI::add_wp_hook( 'aitfp_spawn_cron', '__return_false' );
@@ -274,7 +318,7 @@ check "status pending"  "$(ev "echo get_post_meta($T5, '_aitfp_status', true);")
 ev "wp_delete_post($T5, true);" >/dev/null
 check "event removed on delete" "$(ev "echo wp_next_scheduled('aitfp_translate_post', [$T5]) ? 1 : 0;")" 0
 
-echo "== 9. PHP log"
+echo "== 10. PHP log"
 NEW=$( [ -f $LOG ] && tail -c +$((LOG_START+1)) $LOG | grep -iE 'ai-translator-for-polylang|aitfp' || true)
 if [ -z "$NEW" ]; then ok "no PHP notices/errors from the plugin"; else bad "no PHP notices/errors from the plugin" "$NEW"; fi
 

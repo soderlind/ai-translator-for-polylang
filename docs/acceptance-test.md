@@ -28,7 +28,7 @@ scripts/acceptance.sh
 The script takes 2 to 5 minutes, depending on the AI provider. It exits when it finishes and prints a `PASS`/`FAIL` line per check and a summary:
 
 ```text
-RESULT: 58 passed, 0 failed
+RESULT: 68 passed, 0 failed
 ```
 
 ## Configuration
@@ -50,14 +50,19 @@ The script creates five published source posts in the source language, built fro
 2. **CLI errors**: the right message for a language that is already translated, an unknown language (which lists valid ones), a missing `--user`, a missing post, and `wp aitfp run` on a post with no job. None of these create a draft.
 3. **`wp aitfp translate --async`**: the draft is linked right away, and the job queued with WP-Cron starts at once and finishes.
 4. **`wp aitfp run`**: re-running a finished translation works.
-5. **Edit during translation**: a helper simulates an editor saving the draft while the content is being translated. The AI result is thrown away, the manual edit is kept, and the job is marked `failed` with the error stored.
-6. **Post list labels and actions**: a failed translation shows **Translation failed** and a **Retry translation** row action. Source posts have no retry action.
-7. **Admin over HTTP**, logged in as the admin user with real auth cookies:
+5. **Worker lock**:
+   - While another worker holds the post's lock, a second run is refused and changes nothing.
+   - A lock with no heartbeat for 15 minutes is taken over, and released when the run ends.
+   - A worker whose lock is taken over mid-run stops and doesn't save.
+   - A synchronous `wp aitfp translate` never schedules a cron event.
+6. **Edit during translation**: a helper simulates an editor saving the draft while the content is being translated. The AI result is thrown away, the manual edit is kept, and the job is marked `failed` with the error stored.
+7. **Post list labels and actions**: a failed translation shows **Translation failed** and a **Retry translation** row action. Source posts have no retry action.
+8. **Admin over HTTP**, logged in as the admin user with real auth cookies:
    - Polylang's **+** link points to the plugin. Clicking it creates and queues a draft and goes back to the post list, which shows the "being translated" notice. The background job finishes.
    - A second **+** for the same language is rejected with a 400. A bad security token is rejected with a 403. A logged-out request is sent to the login page. None of these create a draft.
    - The post list shows the failed label and retry link. Retry re-queues the job, which then finishes. Retry is refused once the job is done.
-8. **Delete a queued draft**: with `aitfp_spawn_cron` returning false, the job stays queued. Deleting the draft removes its scheduled event.
-9. **PHP log**: no new plugin errors or notices in `wp-content/debug.log` during the run.
+9. **Delete a queued draft**: with `aitfp_spawn_cron` returning false, the job stays queued. Deleting the draft removes its scheduled event.
+10. **PHP log**: no new plugin errors or notices in `wp-content/debug.log` during the run.
 
 ## Fixtures and cleanup
 

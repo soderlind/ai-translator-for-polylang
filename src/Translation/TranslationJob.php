@@ -32,9 +32,17 @@ class TranslationJob {
 	public const STATUS_FAILED     = 'failed';
 
 	/**
-	 * Seconds after which a job stuck in "processing" may be retried.
+	 * Seconds without a heartbeat after which a job in "processing" is considered dead.
+	 *
+	 * A heartbeat is written before every AI request, so a live job is only this quiet
+	 * if a single request hangs far beyond the request timeout.
 	 */
 	public const STALE_AFTER = 15 * MINUTE_IN_SECONDS;
+
+	/**
+	 * Option name prefix of the per-post worker lock.
+	 */
+	public const LOCK_PREFIX = '_aitfp_lock_';
 
 	/**
 	 * Constructor.
@@ -76,8 +84,9 @@ class TranslationJob {
 	 * @param array<string,string> $language  Target language ( code, name, locale ).
 	 * @param int                  $source_id Source post ID.
 	 * @param int                  $user_id   User who requested the translation.
+	 * @param bool                 $schedule  Whether to schedule a WP-Cron event. Pass false when the caller runs the job itself.
 	 */
-	public function queue( int $post_id, array $language, int $source_id, int $user_id ): void {
+	public function queue( int $post_id, array $language, int $source_id, int $user_id, bool $schedule = true ): void {
 		update_post_meta( $post_id, self::META_LANGUAGE, $language );
 		update_post_meta( $post_id, self::META_SOURCE, $source_id );
 		update_post_meta( $post_id, self::META_USER, $user_id );
@@ -85,6 +94,9 @@ class TranslationJob {
 		$this->set_status( $post_id, self::STATUS_PENDING );
 
 		wp_clear_scheduled_hook( self::HOOK, [ $post_id ] );
+		if ( ! $schedule ) {
+			return;
+		}
 		wp_schedule_single_event( time(), self::HOOK, [ $post_id ] );
 
 		/**
@@ -108,15 +120,32 @@ class TranslationJob {
 	 * @return true|WP_Error
 	 */
 	public function run( int $post_id ) {
+		$token = $this->acquire_lock( $post_id );
+		if ( null === $token ) {
+			return new WP_Error( 'aitfp_in_progress', __( 'This post is already being translated.', 'ai-translator-for-polylang' ) );
+		}
+
+		try {
+			return $this->run_locked( $post_id, $token );
+		} finally {
+			$this->translator->before_request( null );
+			$this->release_lock( $post_id, $token );
+		}
+	}
+
+	/**
+	 * Translates the post while holding its worker lock.
+	 *
+	 * @param int    $post_id Translation post ID.
+	 * @param string $token   Lock token.
+	 * @return true|WP_Error
+	 */
+	private function run_locked( int $post_id, string $token ) {
+		clean_post_cache( $post_id );
 		$post     = get_post( $post_id );
 		$language = get_post_meta( $post_id, self::META_LANGUAGE, true );
 		if ( ! $post instanceof WP_Post || ! is_array( $language ) || empty( $language['locale'] ) ) {
 			return new WP_Error( 'aitfp_invalid_job', __( 'Nothing to translate for this post.', 'ai-translator-for-polylang' ) );
-		}
-
-		$status = (string) get_post_meta( $post_id, self::META_STATUS, true );
-		if ( self::STATUS_PROCESSING === $status && ! $this->is_stale( $post_id ) ) {
-			return new WP_Error( 'aitfp_in_progress', __( 'This post is already being translated.', 'ai-translator-for-polylang' ) );
 		}
 
 		$this->set_status( $post_id, self::STATUS_PROCESSING );
@@ -124,14 +153,23 @@ class TranslationJob {
 			set_time_limit( 0 );
 		}
 
+		$this->translator->before_request( fn(): bool => $this->heartbeat( $post_id, $token ) );
+
 		// Save as the requesting user so kses and capabilities match a normal edit.
 		$previous_user = get_current_user_id();
 		$user_id       = (int) get_post_meta( $post_id, self::META_USER, true );
 		wp_set_current_user( $user_id ? $user_id : (int) $post->post_author );
 
-		$result = $this->translate_and_save( $post, $language );
+		$result = $this->translate_and_save( $post, $language, $token );
 
 		wp_set_current_user( $previous_user );
+
+		// A newer worker owns the job now; leave its status alone.
+		if ( ! $this->owns_lock( $post_id, $token ) ) {
+			return is_wp_error( $result ) && 'aitfp_lock_lost' === $result->get_error_code()
+				? $result
+				: new WP_Error( 'aitfp_lock_lost', __( 'Another worker took over this translation.', 'ai-translator-for-polylang' ) );
+		}
 
 		if ( is_wp_error( $result ) ) {
 			update_post_meta( $post_id, self::META_ERROR, $result->get_error_message() );
@@ -173,7 +211,7 @@ class TranslationJob {
 	}
 
 	/**
-	 * Whether a processing job has been running long enough to be considered dead.
+	 * Whether a job has had no heartbeat for long enough to be considered dead.
 	 *
 	 * @param int $post_id Post ID.
 	 * @return bool
@@ -188,10 +226,11 @@ class TranslationJob {
 	 *
 	 * @param WP_Post              $post     Translation post.
 	 * @param array<string,string> $language Target language.
+	 * @param string               $token    Lock token.
 	 * @return true|WP_Error
 	 */
-	private function translate_and_save( WP_Post $post, array $language ) {
-		$modified = $post->post_modified_gmt;
+	private function translate_and_save( WP_Post $post, array $language, string $token ) {
+		$snapshot = [ $post->post_modified_gmt, $post->post_title, $post->post_excerpt, $post->post_content ];
 
 		$title = $this->translator->translate_text( $post->post_title, $language, 'title' );
 		if ( is_wp_error( $title ) ) {
@@ -208,9 +247,16 @@ class TranslationJob {
 			return $content;
 		}
 
+		if ( ! $this->heartbeat( $post->ID, $token ) ) {
+			return new WP_Error( 'aitfp_lock_lost', __( 'Another worker took over this translation.', 'ai-translator-for-polylang' ) );
+		}
+
+		// Modification times have one-second precision, so compare the fields too.
 		clean_post_cache( $post->ID );
 		$current = get_post( $post->ID );
-		if ( ! $current instanceof WP_Post || $current->post_modified_gmt !== $modified ) {
+		if ( ! $current instanceof WP_Post
+			|| [ $current->post_modified_gmt, $current->post_title, $current->post_excerpt, $current->post_content ] !== $snapshot
+		) {
 			return new WP_Error(
 				'aitfp_post_changed',
 				__( 'The post was edited while it was being translated, so the translation was not saved. Retry to translate the current version.', 'ai-translator-for-polylang' )
@@ -249,5 +295,95 @@ class TranslationJob {
 	private function set_status( int $post_id, string $status ): void {
 		update_post_meta( $post_id, self::META_STATUS, $status );
 		update_post_meta( $post_id, self::META_UPDATED, time() );
+	}
+
+	/**
+	 * Atomically claims the post's worker lock, taking over a lock whose heartbeat is stale.
+	 *
+	 * The lock is a row in the options table, read and written with direct queries so the
+	 * unique option_name index makes the claim atomic and no object cache can serve stale values.
+	 *
+	 * @param int $post_id Post ID.
+	 * @return string|null Lock token, or null when another worker holds the lock.
+	 */
+	private function acquire_lock( int $post_id ): ?string {
+		global $wpdb;
+
+		$name  = self::LOCK_PREFIX . $post_id;
+		$token = wp_generate_password( 20, false );
+		$value = $token . '|' . time();
+
+		// phpcs:disable WordPress.DB.DirectDatabaseQuery
+		$claimed = $wpdb->query( $wpdb->prepare( "INSERT IGNORE INTO {$wpdb->options} (option_name, option_value, autoload) VALUES (%s, %s, 'off')", $name, $value ) );
+		if ( 1 === $claimed ) {
+			return $token;
+		}
+
+		$current = $wpdb->get_var( $wpdb->prepare( "SELECT option_value FROM {$wpdb->options} WHERE option_name = %s", $name ) );
+		if ( null === $current ) {
+			// Released in the meantime; try once more.
+			$claimed = $wpdb->query( $wpdb->prepare( "INSERT IGNORE INTO {$wpdb->options} (option_name, option_value, autoload) VALUES (%s, %s, 'off')", $name, $value ) );
+			return 1 === $claimed ? $token : null;
+		}
+
+		$heartbeat = (int) substr( (string) strrchr( (string) $current, '|' ), 1 );
+		if ( time() - $heartbeat <= self::STALE_AFTER ) {
+			return null;
+		}
+
+		// Compare-and-swap so only one worker can take over a stale lock.
+		$taken = $wpdb->query( $wpdb->prepare( "UPDATE {$wpdb->options} SET option_value = %s WHERE option_name = %s AND option_value = %s", $value, $name, $current ) );
+		// phpcs:enable
+
+		return 1 === $taken ? $token : null;
+	}
+
+	/**
+	 * Whether the given token still holds the post's lock.
+	 *
+	 * @param int    $post_id Post ID.
+	 * @param string $token   Lock token.
+	 * @return bool
+	 */
+	private function owns_lock( int $post_id, string $token ): bool {
+		global $wpdb;
+
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery
+		$current = $wpdb->get_var( $wpdb->prepare( "SELECT option_value FROM {$wpdb->options} WHERE option_name = %s", self::LOCK_PREFIX . $post_id ) );
+
+		return is_string( $current ) && str_starts_with( $current, $token . '|' );
+	}
+
+	/**
+	 * Refreshes the lock and job heartbeat, if the token still holds the lock.
+	 *
+	 * @param int    $post_id Post ID.
+	 * @param string $token   Lock token.
+	 * @return bool False when another worker has taken over.
+	 */
+	private function heartbeat( int $post_id, string $token ): bool {
+		global $wpdb;
+
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery
+		$wpdb->query( $wpdb->prepare( "UPDATE {$wpdb->options} SET option_value = %s WHERE option_name = %s AND option_value LIKE %s", $token . '|' . time(), self::LOCK_PREFIX . $post_id, $wpdb->esc_like( $token . '|' ) . '%' ) );
+		if ( ! $this->owns_lock( $post_id, $token ) ) {
+			return false;
+		}
+
+		update_post_meta( $post_id, self::META_UPDATED, time() );
+		return true;
+	}
+
+	/**
+	 * Releases the post's lock, if the token still holds it.
+	 *
+	 * @param int    $post_id Post ID.
+	 * @param string $token   Lock token.
+	 */
+	private function release_lock( int $post_id, string $token ): void {
+		global $wpdb;
+
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery
+		$wpdb->query( $wpdb->prepare( "DELETE FROM {$wpdb->options} WHERE option_name = %s AND option_value LIKE %s", self::LOCK_PREFIX . $post_id, $wpdb->esc_like( $token . '|' ) . '%' ) );
 	}
 }

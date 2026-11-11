@@ -73,6 +73,27 @@ final class ContentChunkerTest extends TestCase {
 		);
 	}
 
+	public function test_is_intact_rejects_dropped_html_and_invalid_attribute_json(): void {
+		$source = '<!-- wp:heading {"level":3} --><h3 class="wp-block-heading">Planting</h3><!-- /wp:heading -->';
+
+		$this->assertTrue( ContentChunker::is_intact( $source, '<!-- wp:heading {"level":3} --><h3 class="wp-block-heading">Planting</h3><!-- /wp:heading -->' ) );
+		$this->assertTrue(
+			ContentChunker::is_intact( '<!-- wp:button {"text":"Read more"} --><a>Read more</a><!-- /wp:button -->', '<!-- wp:button {"text":"Les mer"} --><a>Les mer</a><!-- /wp:button -->' ),
+			'Translated attribute values are allowed.'
+		);
+		$this->assertFalse( ContentChunker::is_intact( $source, '<!-- wp:heading {"level":3} -->Planting<!-- /wp:heading -->' ), 'Dropped tags.' );
+		$this->assertFalse( ContentChunker::is_intact( $source, '<!-- wp:heading {"level":3} --><p>Planting</p><!-- /wp:heading -->' ), 'Changed tags.' );
+		$this->assertFalse( ContentChunker::is_intact( $source, '<!-- wp:heading {"level":} --><h3 class="wp-block-heading">Planting</h3><!-- /wp:heading -->' ), 'Invalid JSON.' );
+	}
+
+	public function test_has_translatable_text_includes_alt_and_title(): void {
+		$this->assertTrue( ContentChunker::has_translatable_text( sprintf( self::PARAGRAPH, 'Hello' ) ) );
+		$this->assertTrue( ContentChunker::has_translatable_text( '<!-- wp:image --><figure><img src="a.jpg" alt="Red tomatoes"/></figure><!-- /wp:image -->' ) );
+		$this->assertTrue( ContentChunker::has_translatable_text( "<a href=\"/\" title='Home'></a>" ) );
+		$this->assertFalse( ContentChunker::has_translatable_text( '<!-- wp:image --><figure><img src="a.jpg" alt=""/></figure><!-- /wp:image -->' ) );
+		$this->assertFalse( ContentChunker::has_translatable_text( "<!-- wp:separator -->\n<hr class=\"wp-block-separator\"/>\n<!-- /wp:separator -->\n\n&nbsp;" ) );
+	}
+
 	public function test_strip_code_fences(): void {
 		$this->assertSame( '<p>Hei</p>', ContentChunker::strip_code_fences( "```html\n<p>Hei</p>\n```" ) );
 		$this->assertSame( 'Plain `code` text', ContentChunker::strip_code_fences( 'Plain `code` text' ) );
