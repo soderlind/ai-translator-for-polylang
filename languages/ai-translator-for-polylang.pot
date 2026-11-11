@@ -2,14 +2,14 @@
 # This file is distributed under the GPL v2 or later.
 msgid ""
 msgstr ""
-"Project-Id-Version: AI Translator for Polylang 0.1.1\n"
+"Project-Id-Version: AI Translator for Polylang 0.1.2\n"
 "Report-Msgid-Bugs-To: https://wordpress.org/support/plugin/ai-translator-for-polylang\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"POT-Creation-Date: 2026-11-11T19:52:13+00:00\n"
+"POT-Creation-Date: 2026-11-11T21:13:16+00:00\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "X-Generator: WP-CLI 2.12.0\n"
 "X-Domain: ai-translator-for-polylang\n"
@@ -34,41 +34,127 @@ msgstr ""
 msgid "https://soderlind.no"
 msgstr ""
 
-#: src/Admin/Admin.php:80
-#: src/Admin/Admin.php:158
+#: src/Admin/Admin.php:83
+#: src/Admin/Admin.php:171
 msgid "Post not found."
 msgstr ""
 
-#: src/Admin/Admin.php:86
+#: src/Admin/Admin.php:89
 msgid "You are not allowed to translate this post."
 msgstr ""
 
-#: src/Admin/Admin.php:92
+#: src/Admin/Admin.php:95
 msgid "This post already has a translation in that language."
 msgstr ""
 
-#: src/Admin/Admin.php:115
+#: src/Admin/Admin.php:118
+#: src/Admin/Admin.php:250
+#: src/Admin/Admin.php:429
 msgid "Retry translation"
 msgstr ""
 
 #. translators: %s: Language name.
-#: src/Admin/Admin.php:139
+#: src/Admin/Admin.php:142
 #, php-format
 msgid "Translating to %s…"
 msgstr ""
 
-#: src/Admin/Admin.php:145
-msgid "Translation failed"
+#: src/Admin/Admin.php:148
+#: src/Admin/Admin.php:244
+msgid "AI translation complete"
 msgstr ""
 
-#: src/Admin/Admin.php:164
+#: src/Admin/Admin.php:156
+msgid "Translation failed — view error"
+msgstr ""
+
+#: src/Admin/Admin.php:177
 msgid "This translation cannot be retried."
 msgstr ""
 
 #. translators: %s: Language name.
-#: src/Admin/Admin.php:191
+#: src/Admin/Admin.php:240
+#: src/Admin/Admin.php:373
 #, php-format
-msgid "A draft translation was created and is being translated to %s with AI in the background. Avoid editing it until it is done, or the AI translation will be discarded. Reload this page to see when it is done."
+msgid "Translation to %s is queued."
+msgstr ""
+
+#. translators: %s: Language name.
+#: src/Admin/Admin.php:241
+#: src/Admin/Admin.php:386
+#, php-format
+msgid "Translating to %s in the background."
+msgstr ""
+
+#: src/Admin/Admin.php:242
+#: src/Admin/Admin.php:380
+#: src/Admin/Admin.php:393
+msgid "This notice will update automatically."
+msgstr ""
+
+#: src/Admin/Admin.php:243
+#: src/Admin/Admin.php:378
+#: src/Admin/Admin.php:391
+msgid "Avoid editing or publishing this draft until translation finishes. Edits made while the AI is working will discard its result."
+msgstr ""
+
+#. translators: %s: Language name.
+#: src/Admin/Admin.php:245
+#: src/Admin/Admin.php:403
+#, php-format
+msgid "Translation to %s is ready to review."
+msgstr ""
+
+#. translators: 1: Language name, 2: Error message.
+#: src/Admin/Admin.php:246
+#: src/Admin/Admin.php:421
+#, php-format
+msgid "Translation to %1$s failed: %2$s"
+msgstr ""
+
+#: src/Admin/Admin.php:247
+msgid "Translation failed"
+msgstr ""
+
+#: src/Admin/Admin.php:248
+msgid "View error"
+msgstr ""
+
+#: src/Admin/Admin.php:249
+#: src/Admin/Admin.php:412
+msgid "Open draft"
+msgstr ""
+
+#: src/Admin/Admin.php:251
+msgid "Reload this editor to see the translated draft."
+msgstr ""
+
+#: src/Admin/Admin.php:252
+msgid "Reload editor"
+msgstr ""
+
+#: src/Admin/Admin.php:253
+msgid "Could not refresh translation status. Retrying…"
+msgstr ""
+
+#: src/Admin/Admin.php:254
+msgid "Translation status is unavailable. Reload the page to check again."
+msgstr ""
+
+#: src/Admin/Admin.php:269
+msgid "You are not allowed to view this translation status."
+msgstr ""
+
+#: src/Admin/Admin.php:277
+msgid "Translation status is unavailable."
+msgstr ""
+
+#: src/Admin/Admin.php:398
+msgid "Translation is complete. Reload this editor to see the translated draft."
+msgstr ""
+
+#: src/Admin/Admin.php:433
+msgid "Translation status is unavailable. Check the post list for its current state."
 msgstr ""
 
 #: src/Translation/TranslationJob.php:125
@@ -81,7 +167,7 @@ msgstr ""
 
 #: src/Translation/TranslationJob.php:171
 #: src/Translation/TranslationJob.php:251
-#: src/Translation/Translator.php:164
+#: src/Translation/Translator.php:175
 msgid "Another worker took over this translation."
 msgstr ""
 
@@ -89,10 +175,14 @@ msgstr ""
 msgid "The post was edited while it was being translated, so the translation was not saved. Retry to translate the current version."
 msgstr ""
 
-#: src/Translation/Translator.php:140
+#: src/Translation/Translator.php:150
 msgid "The AI response changed the block structure or HTML of the content, so it was not saved."
 msgstr ""
 
-#: src/Translation/Translator.php:157
+#: src/Translation/Translator.php:167
 msgid "The WordPress AI Client is not available. WordPress 7.0 or later is required."
+msgstr ""
+
+#: src/Translation/Translator.php:191
+msgid "The AI provider could not be reached. Check Settings → Connectors and retry."
 msgstr ""
