@@ -20,7 +20,7 @@ AI Translator for Polylang changes what Polylang's "Add a translation" (+) butto
 * Works from the + button you already use in post lists.
 * Creates the draft the way Polylang does: it copies menu order, comment and ping status, translated parent, sticky state, and the taxonomies and custom fields Polylang syncs.
 * Translates in the background with WP-Cron. The post list shows the progress.
-* Keeps block markup intact. Content is sent in chunks that split only between blocks, and each result's block structure, HTML tags and block JSON are checked. A broken result is retried once and never saved.
+* Keeps block markup intact. The WordPress HTML API pulls out only the text (text nodes, alt and title text, and text in block attributes), so the AI never sees or changes tags, URLs, image IDs or block structure.
 * Only one worker translates a post at a time, so retries and CLI runs can't race each other.
 * Never overwrites manual edits. If the draft is edited during translation, the AI result is thrown away.
 * A "Retry translation" row action for failed or stuck jobs.
@@ -54,7 +54,7 @@ The plugin runs WP-Cron right after it queues a job. If your site blocks loopbac
 
 = Why did the translation fail? =
 
-Hover over "Translation failed" in the post list to read the error. Common causes: the AI changed the block structure, someone edited the draft during translation, or the AI request timed out. For long posts, try raising `aitfp_request_timeout` or lowering `aitfp_content_chunk_size`.
+Hover over "Translation failed" in the post list to read the error. Common causes: the AI didn't return one translation per text segment, someone edited the draft during translation, or the AI request timed out. For long posts, try raising `aitfp_request_timeout` or lowering `aitfp_content_chunk_size`.
 
 = Is the translation published automatically? =
 
@@ -62,7 +62,7 @@ No. Translations are saved as drafts so you can review them before you publish.
 
 = What hooks are available? =
 
-Filters: `aitfp_prompt_builder`, `aitfp_content_chunk_size`, `aitfp_request_timeout`, `aitfp_translated_post_data`, `aitfp_spawn_cron`.
+Filters: `aitfp_prompt_builder`, `aitfp_content_chunk_size`, `aitfp_request_timeout`, `aitfp_translatable_html_attributes`, `aitfp_translatable_block_attributes`, `aitfp_translated_post_data`, `aitfp_spawn_cron`.
 Actions: `aitfp_translated`, `aitfp_translation_failed`.
 
 See README.md for arguments.

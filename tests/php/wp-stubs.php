@@ -1,6 +1,6 @@
 <?php
 /**
- * Minimal WordPress stubs for unit tests that run without WordPress.
+ * WordPress classes needed by unit tests. Functions are mocked with Brain Monkey.
  *
  * @package AiTranslatorForPolylang\Tests
  */
@@ -22,23 +22,5 @@ if ( ! class_exists( 'WP_Error' ) ) {
 		public function get_error_data(): mixed {
 			return $this->data;
 		}
-	}
-}
-
-if ( ! function_exists( 'is_wp_error' ) ) {
-	function is_wp_error( mixed $thing ): bool {
-		return $thing instanceof WP_Error;
-	}
-}
-
-if ( ! function_exists( '__' ) ) {
-	function __( string $text, string $domain = 'default' ): string {
-		return $text;
-	}
-}
-
-if ( ! function_exists( 'wp_ai_client_prompt' ) ) {
-	function wp_ai_client_prompt( string $prompt = '' ): never {
-		throw new LogicException( 'Unit tests must override Translator::request().' );
 	}
 }
