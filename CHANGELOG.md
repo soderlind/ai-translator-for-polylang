@@ -4,6 +4,22 @@ All notable changes to this project are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.2] - 2026-11-11
+
+### Added
+
+- The translation status updates on its own, with no page reload, and the post list shows "AI translation complete" when the draft is ready.
+- The editor warns you while the draft is being translated and asks you to reload when it finishes.
+
+### Changed
+
+- Failure details are visible and keyboard accessible, with a retry link.
+- The "being translated" notice disappears once the job ends instead of staying after the draft is done.
+
+### Fixed
+
+- When no AI provider can be used ("No models found…"), the plugin tries once more, then shows: "The AI provider could not be reached. Check Settings → Connectors and retry."
+
 ## [0.1.1] - 2026-11-11
 
 ### Added
@@ -29,5 +45,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - End-to-end acceptance test, `scripts/acceptance.sh`, documented in `docs/acceptance-test.md`.
 - Uninstall removes the plugin's post meta and scheduled events on every site in a multisite network.
 
+[0.1.2]: https://github.com/soderlind/ai-translator-for-polylang/releases/tag/0.1.2
 [0.1.1]: https://github.com/soderlind/ai-translator-for-polylang/releases/tag/0.1.1
 [0.1.0]: https://github.com/soderlind/ai-translator-for-polylang/releases/tag/0.1.0

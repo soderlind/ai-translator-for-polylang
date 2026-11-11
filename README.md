@@ -14,8 +14,9 @@ Click Polylang's **Add a translation** (+) button and get a linked draft that th
 1. In a post list, click the **+** next to a language that has no translation yet.
 2. The plugin creates a **draft** in that language, linked to the source post. It copies what Polylang's own "Add a translation" copies: menu order, comment and ping status, translated parent, sticky state, and the taxonomies and custom fields Polylang syncs.
 3. A WP-Cron job sends the title, excerpt and content to the AI and saves the translation into the draft.
-4. While the job runs, the post list shows **Translating to {language}…** next to the title. If it fails, you see **Translation failed**. Hover over it to read the error.
-5. Review the draft and publish it.
+4. While the job runs, the post list shows **Translating to {language}…** and the confirmation notice updates automatically. The editor warns you not to edit or publish the draft while translation is running.
+5. When the job finishes, the post list shows **AI translation complete** and the status notice links to the draft. If it fails, the notice and post state show the error and a retry link.
+6. Review the draft and publish it.
 
 ### What keeps the content safe
 
@@ -29,6 +30,8 @@ Click Polylang's **Add a translation** (+) button and get a linked draft that th
 ### Retrying
 
 A **Retry translation** row action shows up on translations that failed or have been stuck in processing for more than 15 minutes.
+
+If WordPress finds no usable AI provider for a request (it reports "No models found…", often a brief network or rate-limit hiccup), the plugin waits five seconds and tries once more. If that also fails, the job fails with "The AI provider could not be reached. Check Settings → Connectors and retry."
 
 ## WP-CLI
 

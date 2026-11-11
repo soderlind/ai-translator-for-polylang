@@ -29,6 +29,16 @@ class Translator {
 	public const DEFAULT_TIMEOUT = 180;
 
 	/**
+	 * Attempts made when no AI provider is available.
+	 */
+	private const PROVIDER_ATTEMPTS = 2;
+
+	/**
+	 * Seconds to wait before retrying when no AI provider is available.
+	 */
+	private const PROVIDER_RETRY_DELAY = 5;
+
+	/**
 	 * Called before every AI request. Returning false aborts the translation.
 	 *
 	 * @var (callable(): bool)|null
@@ -158,13 +168,45 @@ class Translator {
 			);
 		}
 
-		if ( $this->before_request && false === ( $this->before_request )() ) {
-			return new WP_Error(
-				'aitfp_lock_lost',
-				__( 'Another worker took over this translation.', 'ai-translator-for-polylang' )
-			);
-		}
+		for ( $attempt = 1; ; $attempt++ ) {
+			if ( $this->before_request && false === ( $this->before_request )() ) {
+				return new WP_Error(
+					'aitfp_lock_lost',
+					__( 'Another worker took over this translation.', 'ai-translator-for-polylang' )
+				);
+			}
 
+			$result = $this->request( $text, $instruction, $field, $language );
+			if ( ! is_wp_error( $result ) ) {
+				return (string) $result;
+			}
+
+			if ( ! self::is_provider_unavailable( $result ) ) {
+				return $result;
+			}
+
+			if ( $attempt >= self::PROVIDER_ATTEMPTS ) {
+				return new WP_Error(
+					'aitfp_provider_unavailable',
+					__( 'The AI provider could not be reached. Check Settings → Connectors and retry.', 'ai-translator-for-polylang' ),
+					[ 'original_message' => $result->get_error_message() ]
+				);
+			}
+
+			$this->pause( self::PROVIDER_RETRY_DELAY );
+		}
+	}
+
+	/**
+	 * Sends one prompt to the AI Client.
+	 *
+	 * @param string               $text        User prompt.
+	 * @param string               $instruction System instruction.
+	 * @param string               $field       Field being translated.
+	 * @param array<string,string> $language    Target language.
+	 * @return string|WP_Error
+	 */
+	protected function request( string $text, string $instruction, string $field, array $language ) {
 		$request_options = new RequestOptions();
 		/**
 		 * Filters the AI request timeout in seconds.
@@ -194,6 +236,29 @@ class Translator {
 		}
 
 		return (string) $result;
+	}
+
+	/**
+	 * Whether an AI Client error means no configured provider was usable.
+	 *
+	 * Core reports a failed provider availability check (network error, timeout,
+	 * rate limit) as "No models found …", which is often transient.
+	 *
+	 * @param WP_Error $error AI Client error.
+	 * @return bool
+	 */
+	private static function is_provider_unavailable( WP_Error $error ): bool {
+		return 'prompt_invalid_argument' === $error->get_error_code()
+			&& str_starts_with( $error->get_error_message(), 'No models found' );
+	}
+
+	/**
+	 * Waits before retrying a request.
+	 *
+	 * @param int $seconds Seconds to wait.
+	 */
+	protected function pause( int $seconds ): void {
+		sleep( $seconds );
 	}
 
 	/**

@@ -251,6 +251,7 @@ has   "error message stored"     "$(get error "$S")" "edited while it was being 
 echo "== 7. Admin: post states and row actions"
 OUT=$(ev "\$p = get_post($T1); echo implode('|', apply_filters('display_post_states', [], \$p)), PHP_EOL, implode('|', array_keys(apply_filters('post_row_actions', [], \$p)));")
 has "failed state label"     "$OUT" "Translation failed"
+has "failed state exposes the error" "$OUT" "edited while it was being translated"
 has "retry row action"       "$OUT" "aitfp_retry"
 check "no retry on source post" "$(ev "echo (int) isset(apply_filters('post_row_actions', [], get_post($A))['aitfp_retry']);")" 0
 
@@ -276,12 +277,28 @@ T3=${R##*aitfp_queued=}
 check "+ created linked target draft" "$(ev "echo pll_get_post($C, '$TGT_LANG');")" "$T3"
 
 curl -sk -o "$TMP/list" -H "Cookie: $COOKIE" "$URL/wp-admin/edit.php?aitfp_queued=$T3&lang=all"
-has "queued notice shown"   "$(cat "$TMP/list")" "is being translated to $NBNAME"
+if grep -qF "Translation to $NBNAME is queued" "$TMP/list" \
+	|| grep -qF "Translating to $NBNAME in the background" "$TMP/list" \
+	|| grep -qF "ready to review" "$TMP/list"; then
+	ok "status notice shown"
+else
+	bad "status notice shown" "$(head -c 400 "$TMP/list")"
+fi
+has "status poller enqueued" "$(cat "$TMP/list")" "admin-status.js"
 ST=$(wait_done "$T3" 120)
 check "admin-queued job done via spawned cron" "$ST" done
 S=$(state "$T3")
 check "admin job blocks preserved"   "$(get blocks_equal "$S")" 1
 check "admin job category swapped"   "$(get cats "$S")" "$CATNB"
+has "completed state shown" "$(ev "echo implode('|', apply_filters('display_post_states', [], get_post($T3)));")" "AI translation complete"
+curl -sk -o "$TMP/list" -H "Cookie: $COOKIE" "$URL/wp-admin/edit.php?aitfp_queued=$T3&lang=all"
+has "completed notice links to draft" "$(cat "$TMP/list")" "ready to review"
+STATUS_NONCE=$(ev "\$_COOKIE[LOGGED_IN_COOKIE] = '$LOGGED'; wp_set_current_user($AT_UID); echo wp_create_nonce('aitfp_translation_status');")
+STATUS_HTTP=$(curl -sk -o "$TMP/status" -w '%{http_code}' -H "Cookie: $COOKIE" -d "action=aitfp_translation_status&post_id=$T3&nonce=$STATUS_NONCE" "$URL/wp-admin/admin-ajax.php")
+check "status endpoint responds" "$STATUS_HTTP" 200
+has "status endpoint reports completion" "$(cat "$TMP/status")" '"status":"done"'
+STATUS_HTTP=$(curl -sk -o "$TMP/status" -w '%{http_code}' -H "Cookie: $COOKIE" -d "action=aitfp_translation_status&post_id=$T3&nonce=deadbeef" "$URL/wp-admin/admin-ajax.php")
+check "status endpoint rejects bad nonce" "$STATUS_HTTP" 403
 
 R=$(curlc "$PLUS_C")
 has "second + for same language rejected" "$R" "400"
@@ -314,7 +331,15 @@ PHP
 wpc aitfp translate "$E" --language="$TGT_LANG" --user="$AT_USER" --async --require="$TMP/no-spawn.php" >/dev/null
 T5=$(ev "echo pll_get_post($E, '$TGT_LANG');")
 check "event scheduled" "$(ev "echo wp_next_scheduled('aitfp_translate_post', [$T5]) ? 1 : 0;")" 1
+ev "wp_clear_scheduled_hook('aitfp_translate_post', [$T5]); wp_schedule_single_event(time() + 300, 'aitfp_translate_post', [$T5]);" >/dev/null
+check "deletion fixture event scheduled in future" "$(ev "echo wp_next_scheduled('aitfp_translate_post', [$T5]) > time() ? 1 : 0;")" 1
 check "status pending"  "$(ev "echo get_post_meta($T5, '_aitfp_status', true);")" pending
+curl -sk -o "$TMP/editor" -H "Cookie: $COOKIE" "$URL/wp-admin/post.php?post=$T5&action=edit"
+has "editor warns while translation is pending" "$(cat "$TMP/editor")" "Avoid editing or publishing this draft"
+STATUS_NONCE=$(ev "\$_COOKIE[LOGGED_IN_COOKIE] = '$LOGGED'; wp_set_current_user($AT_UID); echo wp_create_nonce('aitfp_translation_status');")
+STATUS_HTTP=$(curl -sk -o "$TMP/status" -w '%{http_code}' -H "Cookie: $COOKIE" -d "action=aitfp_translation_status&post_id=$T5&nonce=$STATUS_NONCE" "$URL/wp-admin/admin-ajax.php")
+check "pending status endpoint responds" "$STATUS_HTTP" 200
+has "status endpoint reports queued job" "$(cat "$TMP/status")" '"status":"pending"'
 ev "wp_delete_post($T5, true);" >/dev/null
 check "event removed on delete" "$(ev "echo wp_next_scheduled('aitfp_translate_post', [$T5]) ? 1 : 0;")" 0
 

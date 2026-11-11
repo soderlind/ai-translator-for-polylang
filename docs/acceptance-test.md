@@ -58,7 +58,8 @@ The script creates five published source posts in the source language, built fro
 6. **Edit during translation**: a helper simulates an editor saving the draft while the content is being translated. The AI result is thrown away, the manual edit is kept, and the job is marked `failed` with the error stored.
 7. **Post list labels and actions**: a failed translation shows **Translation failed** and a **Retry translation** row action. Source posts have no retry action.
 8. **Admin over HTTP**, logged in as the admin user with real auth cookies:
-   - Polylang's **+** link points to the plugin. Clicking it creates and queues a draft and goes back to the post list, which shows the "being translated" notice. The background job finishes.
+   - Polylang's **+** link points to the plugin. Clicking it creates and queues a draft and goes back to the post list, which shows a status notice and loads the status poller. The background job finishes and the post list shows **AI translation complete**.
+   - The status endpoint reports both pending and completed jobs. The editor warns against editing a draft while its translation is pending.
    - A second **+** for the same language is rejected with a 400. A bad security token is rejected with a 403. A logged-out request is sent to the login page. None of these create a draft.
    - The post list shows the failed label and retry link. Retry re-queues the job, which then finishes. Retry is refused once the job is done.
 9. **Delete a queued draft**: with `aitfp_spawn_cron` returning false, the job stays queued. Deleting the draft removes its scheduled event.

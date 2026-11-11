@@ -5,7 +5,7 @@ Requires at least: 7.0
 Tested up to: 7.0
 Requires PHP: 8.3
 Requires Plugins: polylang
-Stable tag: 0.1.1
+Stable tag: 0.1.2
 License: GPL v2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -68,6 +68,13 @@ Actions: `aitfp_translated`, `aitfp_translation_failed`.
 See README.md for arguments.
 
 == Changelog ==
+
+= 0.1.2 =
+* The translation status updates on its own, with no page reload, and the post list shows "AI translation complete" when the draft is ready.
+* The editor warns you while the draft is being translated and asks you to reload when it finishes.
+* Failure details are visible and keyboard accessible, with a retry link.
+* The "being translated" notice disappears once the job ends instead of staying after the draft is done.
+* When no AI provider can be used ("No models found…"), the plugin tries once more, then shows: "The AI provider could not be reached. Check Settings → Connectors and retry."
 
 = 0.1.1 =
 * Add a translation template and WP-CLI internationalization tooling.
