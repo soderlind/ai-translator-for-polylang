@@ -110,45 +110,83 @@ class Translator {
 	}
 
 	/**
-	 * Translates one content chunk, retrying once if block markup was damaged.
+	 * Translates the text segments of one content chunk, leaving all markup untouched.
 	 *
 	 * @param string               $chunk    Content chunk.
 	 * @param array<string,string> $language Target language.
 	 * @return string|WP_Error
 	 */
 	private function translate_chunk( string $chunk, array $language ) {
-		if ( ! ContentChunker::has_translatable_text( $chunk ) ) {
+		/**
+		 * Filters the HTML attributes whose values are translated, e.g. alt and title.
+		 *
+		 * @param list<string> $attributes Attribute names.
+		 */
+		$html_attributes = (array) apply_filters( 'aitfp_translatable_html_attributes', ContentSegments::HTML_ATTRIBUTES );
+		/**
+		 * Filters the block attribute keys whose string values are translated, e.g. label and caption.
+		 *
+		 * @param list<string> $attributes Block attribute keys.
+		 */
+		$block_attributes = (array) apply_filters( 'aitfp_translatable_block_attributes', ContentSegments::BLOCK_ATTRIBUTES );
+
+		$segments = ContentSegments::extract( $chunk, $html_attributes, $block_attributes );
+		if ( [] === $segments ) {
 			// Nothing human-readable to translate (whitespace, empty blocks, separators).
 			return $chunk;
 		}
 
 		$instruction = sprintf(
-			'You are a professional translator. Translate the WordPress post content provided by the user into %1$s (%2$s). '
-			. 'The content contains HTML and WordPress block comments such as <!-- wp:paragraph --> and <!-- /wp:paragraph -->. '
-			. 'Rules: keep every HTML tag, attribute, block comment (including its JSON attributes), shortcode, URL and line break exactly as is, in the same order; '
-			. 'translate only human-readable text, including alt and title attribute values; '
-			. 'do not add, remove or reorder anything; do not wrap the answer in code fences. Reply with the translated content only.',
+			'You are a professional translator. The user sends a JSON array of text segments from a WordPress post, in document order. '
+			. 'Translate every segment into %1$s (%2$s). '
+			. 'Consecutive segments can be parts of one sentence split by inline formatting or links, so translate them so they read naturally when joined. '
+			. 'Keep shortcodes, URLs, email addresses, placeholders and code unchanged, and do not add HTML. '
+			. 'Reply with a JSON array of exactly %3$d strings, one translation per segment, in the same order, without code fences or explanations.',
 			$language['name'],
-			$language['locale']
+			$language['locale'],
+			count( $segments )
 		);
+		$payload = (string) json_encode( $segments, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES );
 
 		$attempts = 2;
 		for ( $attempt = 1; $attempt <= $attempts; $attempt++ ) {
-			$result = $this->generate( $chunk, $instruction, 'content', $language );
+			$result = $this->generate( $payload, $instruction, 'content', $language );
 			if ( is_wp_error( $result ) ) {
 				return $result;
 			}
 
-			$result = ContentChunker::strip_code_fences( $result );
-			if ( ContentChunker::is_intact( $chunk, $result ) ) {
-				return $this->preserve_outer_whitespace( $chunk, $result );
+			$translations = self::parse_segments( $result, count( $segments ) );
+			if ( null !== $translations ) {
+				return ContentSegments::replace( $chunk, $translations, $html_attributes, $block_attributes );
 			}
 		}
 
 		return new WP_Error(
-			'aitfp_block_markup_mismatch',
-			__( 'The AI response changed the block structure or HTML of the content, so it was not saved.', 'ai-translator-for-polylang' )
+			'aitfp_segment_mismatch',
+			__( 'The AI response did not return one translation per text segment, so it was not saved.', 'ai-translator-for-polylang' )
 		);
+	}
+
+	/**
+	 * Parses the model's JSON array of translated segments.
+	 *
+	 * @param string $response Model output.
+	 * @param int    $expected Number of segments sent.
+	 * @return list<string>|null Null when the response is not a list of $expected strings.
+	 */
+	private static function parse_segments( string $response, int $expected ): ?array {
+		$translations = json_decode( trim( ContentChunker::strip_code_fences( $response ) ), true );
+		if ( ! is_array( $translations ) || ! array_is_list( $translations ) || count( $translations ) !== $expected ) {
+			return null;
+		}
+
+		foreach ( $translations as $translation ) {
+			if ( ! is_string( $translation ) ) {
+				return null;
+			}
+		}
+
+		return array_map( 'trim', $translations );
 	}
 
 	/**
@@ -259,19 +297,5 @@ class Translator {
 	 */
 	protected function pause( int $seconds ): void {
 		sleep( $seconds );
-	}
-
-	/**
-	 * Restores leading/trailing whitespace that models tend to trim.
-	 *
-	 * @param string $source     Source chunk.
-	 * @param string $translated Translated chunk.
-	 * @return string
-	 */
-	private function preserve_outer_whitespace( string $source, string $translated ): string {
-		preg_match( '/^\s*/', $source, $leading );
-		preg_match( '/\s*$/', $source, $trailing );
-
-		return $leading[0] . trim( $translated ) . $trailing[0];
 	}
 }

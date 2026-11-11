@@ -20,9 +20,10 @@ Click Polylang's **Add a translation** (+) button and get a linked draft that th
 
 ### What keeps the content safe
 
+- The AI never sees the markup. The WordPress HTML API pulls out the text: text nodes, the `alt`, `title`, `aria-label` and `placeholder` attributes, and text values in block attributes such as a navigation link's `label`. The AI gets them as an ordered JSON list and returns one translation per item. Each translation is written back into the original markup, so tags, URLs, classes, image IDs and block structure stay exactly as they were.
+- Text inside `<code>`, `<kbd>` and `<samp>` isn't translated.
 - Content goes to the AI in chunks (6000 characters by default). Chunks only split between top-level blocks, or between paragraphs in classic content.
-- The plugin checks each translated chunk: block delimiters, the HTML tag sequence and the JSON in the block comments. If the AI broke any of them, the plugin tries once more and then marks the job failed. It never saves broken markup.
-- Images with `alt` or `title` text are translated even when they have no caption.
+- If the AI doesn't return one translation per item, the plugin tries once more and then marks the job failed.
 - If someone edits the draft while it is being translated, the plugin throws away the AI result instead of overwriting their changes. It compares the title, excerpt and content as well as the modified time.
 - Only one worker translates a post at a time, using a lock in the options table. The worker refreshes the lock before every AI request. A lock with no refresh for 15 minutes can be taken over, and a worker that loses its lock stops without saving.
 - The job saves as the user who asked for the translation, so kses and capability checks work as they do in a normal edit.
@@ -56,6 +57,8 @@ wp aitfp run 43
 | --- | --- | --- |
 | `aitfp_prompt_builder` | `WP_AI_Client_Prompt_Builder $builder, string $field, array $language` | Change the prompt builder before a request is sent, for example to choose a provider or model. `$field` is `title`, `excerpt` or `content`. |
 | `aitfp_content_chunk_size` | `int $chunk_size` | Maximum characters of content per AI request. Default `6000`, minimum `500`. |
+| `aitfp_translatable_html_attributes` | `string[] $attributes` | HTML attributes whose values are translated. Default `alt`, `title`, `aria-label`, `placeholder`. |
+| `aitfp_translatable_block_attributes` | `string[] $keys` | Block attribute (JSON) keys whose string values are translated. Default `alt`, `caption`, `label`, `placeholder`, `title`, `buttonText`, `text`, `content`, `citation`. |
 | `aitfp_request_timeout` | `int $timeout` | AI request timeout in seconds. Default `180`. |
 | `aitfp_translated_post_data` | `array $data, WP_Post $post, array $language` | Change the post data before it goes to `wp_update_post()`. |
 | `aitfp_spawn_cron` | `bool $spawn, int $post_id` | Whether to start WP-Cron right after queuing. Default `true`, even when `DISABLE_WP_CRON` is set. |
@@ -87,6 +90,8 @@ When you delete the plugin, it removes its post meta (`_aitfp_*`) and any schedu
 composer install
 composer test
 ```
+
+Unit tests run without WordPress: [Brain Monkey](https://github.com/Brain-WP/BrainMonkey) mocks WordPress functions, and the HTML API classes are loaded from the `johnpbloch/wordpress-core` dev dependency.
 
 To regenerate the translation template and compile existing translations, install
 WP-CLI and run:

@@ -10,7 +10,7 @@ declare(strict_types=1);
 namespace AiTranslatorForPolylang\Translation;
 
 /**
- * Pure helpers for chunking content and validating AI output.
+ * Pure helpers for chunking content and cleaning AI output.
  */
 final class ContentChunker {
 
@@ -54,8 +54,6 @@ final class ContentChunker {
 	/**
 	 * Returns the block structure of a piece of markup, ignoring attributes.
 	 *
-	 * Used to verify that a translation kept every block delimiter intact.
-	 *
 	 * @param string $html Markup.
 	 * @return list<string> E.g. [ 'open:paragraph', 'close:paragraph', 'void:image' ].
 	 */
@@ -74,68 +72,6 @@ final class ContentChunker {
 	}
 
 	/**
-	 * Returns the sequence of HTML tags in a piece of markup, ignoring comments and attributes.
-	 *
-	 * @param string $html Markup.
-	 * @return list<string> E.g. [ 'h2', '/h2', 'img' ].
-	 */
-	public static function html_signature( string $html ): array {
-		preg_match_all( '/<\s*(\/?)\s*([a-zA-Z][a-zA-Z0-9-]*)/', self::strip_comments( $html ), $matches, PREG_SET_ORDER );
-
-		return array_map( static fn( array $match ): string => $match[1] . strtolower( $match[2] ), $matches );
-	}
-
-	/**
-	 * Whether every block delimiter's attributes are a valid JSON object.
-	 *
-	 * @param string $html Markup.
-	 * @return bool
-	 */
-	public static function has_valid_block_attributes( string $html ): bool {
-		preg_match_all( self::DELIMITER_PATTERN, $html, $matches, PREG_SET_ORDER );
-		foreach ( $matches as $match ) {
-			if ( ! empty( $match['attrs'] ) ) {
-				json_decode( $match['attrs'], true );
-				if ( JSON_ERROR_NONE !== json_last_error() ) {
-					return false;
-				}
-			}
-		}
-
-		return true;
-	}
-
-	/**
-	 * Whether a translation kept the block delimiters, HTML tags and block attribute JSON of its source.
-	 *
-	 * Attribute values may differ, since some blocks keep translatable text in them.
-	 *
-	 * @param string $source     Source markup.
-	 * @param string $translated Translated markup.
-	 * @return bool
-	 */
-	public static function is_intact( string $source, string $translated ): bool {
-		return self::block_signature( $source ) === self::block_signature( $translated )
-			&& self::html_signature( $source ) === self::html_signature( $translated )
-			&& self::has_valid_block_attributes( $translated );
-	}
-
-	/**
-	 * Whether markup contains anything to translate: visible text, or alt/title attribute values.
-	 *
-	 * @param string $html Markup.
-	 * @return bool
-	 */
-	public static function has_translatable_text( string $html ): bool {
-		$html = self::strip_comments( $html );
-		if ( '' !== trim( html_entity_decode( strip_tags( $html ), ENT_QUOTES | ENT_HTML5 ), " \t\n\r\0\x0B\u{00A0}" ) ) {
-			return true;
-		}
-
-		return 1 === preg_match( '/\s(?:alt|title)\s*=\s*(?:"[^"]*[^"\s][^"]*"|\'[^\']*[^\'\s][^\']*\')/i', $html );
-	}
-
-	/**
 	 * Removes a Markdown code fence that some models wrap their answer in.
 	 *
 	 * @param string $text Model output.
@@ -146,16 +82,6 @@ final class ContentChunker {
 			return $match[1];
 		}
 		return $text;
-	}
-
-	/**
-	 * Removes HTML comments, including block delimiters.
-	 *
-	 * @param string $html Markup.
-	 * @return string
-	 */
-	private static function strip_comments( string $html ): string {
-		return (string) preg_replace( '/<!--.*?-->/s', '', $html );
 	}
 
 	/**
