@@ -1,0 +1,16 @@
+# Files excluded from the release zip.
+.distignore
+.git/
+.github/
+.gitignore
+.gitattributes
+.DS_Store
+.phpunit.cache/
+phpunit.xml
+phpunit.xml.dist
+composer.json
+composer.lock
+tests/
+vendor/
+CHANGELOG.md
+README.md
