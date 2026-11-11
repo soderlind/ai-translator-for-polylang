@@ -18,6 +18,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - WP-CLI commands: `wp aitfp translate <post_id> --language=<slug> [--async]` and `wp aitfp run <post_id>`.
 - Filters: `aitfp_prompt_builder`, `aitfp_content_chunk_size`, `aitfp_request_timeout`, `aitfp_translated_post_data`, `aitfp_spawn_cron`.
 - Actions: `aitfp_translated`, `aitfp_translation_failed`.
+- End-to-end acceptance test, `scripts/acceptance.sh`, documented in `docs/acceptance-test.md`.
 - Uninstall removes the plugin's post meta and scheduled events on every site in a multisite network.
 
 [0.1.0]: https://github.com/soderlind/ai-translator-for-polylang/releases/tag/0.1.0

@@ -83,6 +83,14 @@ composer install
 composer test
 ```
 
+To run the end-to-end test (WP-CLI, admin requests and real AI requests) against a running site:
+
+```bash
+AITFP_URL=https://example.test scripts/acceptance.sh
+```
+
+See [docs/acceptance-test.md](docs/acceptance-test.md).
+
 ## License
 
 GPL v2 or later. Copyright Per Soderlind.
