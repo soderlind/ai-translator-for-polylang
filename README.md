@@ -85,6 +85,18 @@ composer install
 composer test
 ```
 
+To regenerate the translation template and compile existing translations, install
+WP-CLI and run:
+
+```bash
+npm run i18n
+```
+
+The template is saved in `languages/`. Add translated `.po` files there before
+rerunning the command. If translatable JavaScript is added, map its source files
+to their built paths in `i18n-map.json` and add `--use-map=i18n-map.json` to the
+`i18n:make-json` script.
+
 To run the end-to-end test (WP-CLI, admin requests and real AI requests) against a running site:
 
 ```bash

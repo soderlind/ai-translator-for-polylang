@@ -1,0 +1,98 @@
+# Copyright (C) 2026 Per Soderlind
+# This file is distributed under the GPL v2 or later.
+msgid ""
+msgstr ""
+"Project-Id-Version: AI Translator for Polylang 0.1.1\n"
+"Report-Msgid-Bugs-To: https://wordpress.org/support/plugin/ai-translator-for-polylang\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"POT-Creation-Date: 2026-11-11T19:52:13+00:00\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"X-Generator: WP-CLI 2.12.0\n"
+"X-Domain: ai-translator-for-polylang\n"
+
+#. Plugin Name of the plugin
+#: ai-translator-for-polylang.php
+msgid "AI Translator for Polylang"
+msgstr ""
+
+#. Description of the plugin
+#: ai-translator-for-polylang.php
+msgid "Makes Polylang's \"Add a translation\" (+) create a linked draft that is translated with the WordPress AI Client in the background."
+msgstr ""
+
+#. Author of the plugin
+#: ai-translator-for-polylang.php
+msgid "Per Soderlind"
+msgstr ""
+
+#. Author URI of the plugin
+#: ai-translator-for-polylang.php
+msgid "https://soderlind.no"
+msgstr ""
+
+#: src/Admin/Admin.php:80
+#: src/Admin/Admin.php:158
+msgid "Post not found."
+msgstr ""
+
+#: src/Admin/Admin.php:86
+msgid "You are not allowed to translate this post."
+msgstr ""
+
+#: src/Admin/Admin.php:92
+msgid "This post already has a translation in that language."
+msgstr ""
+
+#: src/Admin/Admin.php:115
+msgid "Retry translation"
+msgstr ""
+
+#. translators: %s: Language name.
+#: src/Admin/Admin.php:139
+#, php-format
+msgid "Translating to %s…"
+msgstr ""
+
+#: src/Admin/Admin.php:145
+msgid "Translation failed"
+msgstr ""
+
+#: src/Admin/Admin.php:164
+msgid "This translation cannot be retried."
+msgstr ""
+
+#. translators: %s: Language name.
+#: src/Admin/Admin.php:191
+#, php-format
+msgid "A draft translation was created and is being translated to %s with AI in the background. Avoid editing it until it is done, or the AI translation will be discarded. Reload this page to see when it is done."
+msgstr ""
+
+#: src/Translation/TranslationJob.php:125
+msgid "This post is already being translated."
+msgstr ""
+
+#: src/Translation/TranslationJob.php:148
+msgid "Nothing to translate for this post."
+msgstr ""
+
+#: src/Translation/TranslationJob.php:171
+#: src/Translation/TranslationJob.php:251
+#: src/Translation/Translator.php:164
+msgid "Another worker took over this translation."
+msgstr ""
+
+#: src/Translation/TranslationJob.php:262
+msgid "The post was edited while it was being translated, so the translation was not saved. Retry to translate the current version."
+msgstr ""
+
+#: src/Translation/Translator.php:140
+msgid "The AI response changed the block structure or HTML of the content, so it was not saved."
+msgstr ""
+
+#: src/Translation/Translator.php:157
+msgid "The WordPress AI Client is not available. WordPress 7.0 or later is required."
+msgstr ""

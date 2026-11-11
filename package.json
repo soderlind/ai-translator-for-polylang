@@ -1,0 +1,13 @@
+{
+	"name": "ai-translator-for-polylang",
+	"version": "0.1.1",
+	"private": true,
+	"scripts": {
+		"i18n": "npm run i18n:make-pot && npm run i18n:update-po && npm run i18n:make-mo && npm run i18n:make-json && npm run i18n:make-php",
+		"i18n:make-pot": "wp i18n make-pot . languages/ai-translator-for-polylang.pot --exclude=node_modules,vendor,tests,build --domain=ai-translator-for-polylang",
+		"i18n:update-po": "wp i18n update-po languages/ai-translator-for-polylang.pot languages/",
+		"i18n:make-mo": "wp i18n make-mo languages/",
+		"i18n:make-json": "wp i18n make-json languages/ --no-purge",
+		"i18n:make-php": "wp i18n make-php languages/"
+	}
+}
