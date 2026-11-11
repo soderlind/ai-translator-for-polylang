@@ -331,6 +331,8 @@ PHP
 wpc aitfp translate "$E" --language="$TGT_LANG" --user="$AT_USER" --async --require="$TMP/no-spawn.php" >/dev/null
 T5=$(ev "echo pll_get_post($E, '$TGT_LANG');")
 check "event scheduled" "$(ev "echo wp_next_scheduled('aitfp_translate_post', [$T5]) ? 1 : 0;")" 1
+ev "wp_clear_scheduled_hook('aitfp_translate_post', [$T5]); wp_schedule_single_event(time() + 300, 'aitfp_translate_post', [$T5]);" >/dev/null
+check "deletion fixture event scheduled in future" "$(ev "echo wp_next_scheduled('aitfp_translate_post', [$T5]) > time() ? 1 : 0;")" 1
 check "status pending"  "$(ev "echo get_post_meta($T5, '_aitfp_status', true);")" pending
 curl -sk -o "$TMP/editor" -H "Cookie: $COOKIE" "$URL/wp-admin/post.php?post=$T5&action=edit"
 has "editor warns while translation is pending" "$(cat "$TMP/editor")" "Avoid editing or publishing this draft"
