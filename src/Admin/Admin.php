@@ -232,6 +232,8 @@ class Admin {
 				'ajaxUrl'   => admin_url( 'admin-ajax.php' ),
 				'nonce'     => wp_create_nonce( self::ACTION_STATUS ),
 				'postId'    => $post_id,
+				// Kept for a cached admin-status.js from an earlier version.
+				'status'    => $state?->status ?? '',
 				'active'    => (bool) $state?->is_active(),
 				'retryable' => (bool) $state?->can_retry(),
 				'interval'  => 10000,
