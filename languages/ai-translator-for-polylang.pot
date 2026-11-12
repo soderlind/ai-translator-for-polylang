@@ -9,7 +9,7 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"POT-Creation-Date: 2026-11-11T22:55:43+00:00\n"
+"POT-Creation-Date: 2026-11-11T23:33:32+00:00\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "X-Generator: WP-CLI 2.12.0\n"
 "X-Domain: ai-translator-for-polylang\n"
@@ -34,155 +34,156 @@ msgstr ""
 msgid "https://soderlind.no"
 msgstr ""
 
-#: src/Admin/Admin.php:83
-#: src/Admin/Admin.php:171
+#: src/Admin/Admin.php:84
+#: src/Admin/Admin.php:174
 msgid "Post not found."
 msgstr ""
 
-#: src/Admin/Admin.php:89
+#: src/Admin/Admin.php:90
 msgid "You are not allowed to translate this post."
 msgstr ""
 
-#: src/Admin/Admin.php:95
+#: src/Admin/Admin.php:96
 msgid "This post already has a translation in that language."
 msgstr ""
 
-#: src/Admin/Admin.php:118
-#: src/Admin/Admin.php:250
-#: src/Admin/Admin.php:429
+#: src/Admin/Admin.php:119
+#: src/Admin/Admin.php:249
+#: src/Admin/Admin.php:412
+#: src/Admin/Admin.php:423
 msgid "Retry translation"
 msgstr ""
 
 #. translators: %s: Language name.
-#: src/Admin/Admin.php:142
+#: src/Admin/Admin.php:146
 #, php-format
 msgid "Translating to %s…"
 msgstr ""
 
-#: src/Admin/Admin.php:148
-#: src/Admin/Admin.php:244
+#: src/Admin/Admin.php:152
+#: src/Admin/Admin.php:243
 msgid "AI translation complete"
 msgstr ""
 
-#: src/Admin/Admin.php:156
+#: src/Admin/Admin.php:159
 msgid "Translation failed — view error"
 msgstr ""
 
-#: src/Admin/Admin.php:177
+#: src/Admin/Admin.php:180
 msgid "This translation cannot be retried."
 msgstr ""
 
 #. translators: %s: Language name.
-#: src/Admin/Admin.php:240
-#: src/Admin/Admin.php:373
+#: src/Admin/Admin.php:239
+#: src/Admin/Admin.php:356
 #, php-format
 msgid "Translation to %s is queued."
 msgstr ""
 
 #. translators: %s: Language name.
-#: src/Admin/Admin.php:241
-#: src/Admin/Admin.php:386
+#: src/Admin/Admin.php:240
+#: src/Admin/Admin.php:369
 #, php-format
 msgid "Translating to %s in the background."
 msgstr ""
 
-#: src/Admin/Admin.php:242
-#: src/Admin/Admin.php:380
-#: src/Admin/Admin.php:393
+#: src/Admin/Admin.php:241
+#: src/Admin/Admin.php:363
+#: src/Admin/Admin.php:376
 msgid "This notice will update automatically."
 msgstr ""
 
-#: src/Admin/Admin.php:243
-#: src/Admin/Admin.php:378
-#: src/Admin/Admin.php:391
+#: src/Admin/Admin.php:242
+#: src/Admin/Admin.php:361
+#: src/Admin/Admin.php:374
 msgid "Avoid editing or publishing this draft until translation finishes. Edits made while the AI is working will discard its result."
 msgstr ""
 
 #. translators: %s: Language name.
-#: src/Admin/Admin.php:245
-#: src/Admin/Admin.php:403
+#: src/Admin/Admin.php:244
+#: src/Admin/Admin.php:386
 #, php-format
 msgid "Translation to %s is ready to review."
 msgstr ""
 
 #. translators: 1: Language name, 2: Error message.
-#: src/Admin/Admin.php:246
-#: src/Admin/Admin.php:421
+#: src/Admin/Admin.php:245
+#: src/Admin/Admin.php:404
 #, php-format
 msgid "Translation to %1$s failed: %2$s"
 msgstr ""
 
-#: src/Admin/Admin.php:247
+#: src/Admin/Admin.php:246
 msgid "Translation failed"
 msgstr ""
 
-#: src/Admin/Admin.php:248
+#: src/Admin/Admin.php:247
 msgid "View error"
 msgstr ""
 
-#: src/Admin/Admin.php:249
-#: src/Admin/Admin.php:412
+#: src/Admin/Admin.php:248
+#: src/Admin/Admin.php:395
 msgid "Open draft"
 msgstr ""
 
-#: src/Admin/Admin.php:251
+#: src/Admin/Admin.php:250
 msgid "Reload this editor to see the translated draft."
 msgstr ""
 
-#: src/Admin/Admin.php:252
+#: src/Admin/Admin.php:251
 msgid "Reload editor"
 msgstr ""
 
-#: src/Admin/Admin.php:253
+#: src/Admin/Admin.php:252
 msgid "Could not refresh translation status. Retrying…"
 msgstr ""
 
-#: src/Admin/Admin.php:254
+#: src/Admin/Admin.php:253
 msgid "Translation status is unavailable. Reload the page to check again."
 msgstr ""
 
-#: src/Admin/Admin.php:269
+#: src/Admin/Admin.php:268
 msgid "You are not allowed to view this translation status."
 msgstr ""
 
-#: src/Admin/Admin.php:277
+#: src/Admin/Admin.php:276
 msgid "Translation status is unavailable."
 msgstr ""
 
-#: src/Admin/Admin.php:398
+#: src/Admin/Admin.php:381
 msgid "Translation is complete. Reload this editor to see the translated draft."
 msgstr ""
 
-#: src/Admin/Admin.php:433
+#: src/Admin/Admin.php:416
 msgid "Translation status is unavailable. Check the post list for its current state."
 msgstr ""
 
-#: src/Translation/TranslationJob.php:125
-msgid "This post is already being translated."
-msgstr ""
-
-#: src/Translation/TranslationJob.php:148
-msgid "Nothing to translate for this post."
-msgstr ""
-
-#: src/Translation/TranslationJob.php:171
-#: src/Translation/TranslationJob.php:251
-#: src/Translation/Translator.php:213
-msgid "Another worker took over this translation."
-msgstr ""
-
-#: src/Translation/TranslationJob.php:262
-msgid "The post was edited while it was being translated, so the translation was not saved. Retry to translate the current version."
-msgstr ""
-
-#: src/Translation/Translator.php:166
-msgid "The AI response did not return one translation per text segment, so it was not saved."
-msgstr ""
-
-#: src/Translation/Translator.php:205
+#: src/Translation/AiClientGenerator.php:82
 msgid "The WordPress AI Client is not available. WordPress 7.0 or later is required."
 msgstr ""
 
-#: src/Translation/Translator.php:229
+#: src/Translation/AiClientGenerator.php:90
+#: src/Translation/TranslationJob.php:174
+#: src/Translation/TranslationJob.php:270
+msgid "Another worker took over this translation."
+msgstr ""
+
+#: src/Translation/AiClientGenerator.php:106
 msgid "The AI provider could not be reached. Check Settings → Connectors and retry."
+msgstr ""
+
+#: src/Translation/PostContent.php:114
+msgid "The AI response did not return one translation per text segment, so it was not saved."
+msgstr ""
+
+#: src/Translation/TranslationJob.php:128
+msgid "This post is already being translated."
+msgstr ""
+
+#: src/Translation/TranslationJob.php:151
+msgid "Nothing to translate for this post."
+msgstr ""
+
+#: src/Translation/TranslationJob.php:281
+msgid "The post was edited while it was being translated, so the translation was not saved. Retry to translate the current version."
 msgstr ""

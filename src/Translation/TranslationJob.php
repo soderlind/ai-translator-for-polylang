@@ -26,18 +26,20 @@ class TranslationJob {
 	public const META_SOURCE   = '_aitfp_source';
 	public const META_UPDATED  = '_aitfp_updated';
 
-	public const STATUS_PENDING    = 'pending';
-	public const STATUS_PROCESSING = 'processing';
-	public const STATUS_DONE       = 'done';
-	public const STATUS_FAILED     = 'failed';
+	/**
+	 * Every post meta key the job writes, e.g. for cleanup on uninstall.
+	 */
+	public const META_KEYS = [ self::META_STATUS, self::META_LANGUAGE, self::META_ERROR, self::META_USER, self::META_SOURCE, self::META_UPDATED ];
+
+	public const STATUS_PENDING    = JobState::PENDING;
+	public const STATUS_PROCESSING = JobState::PROCESSING;
+	public const STATUS_DONE       = JobState::DONE;
+	public const STATUS_FAILED     = JobState::FAILED;
 
 	/**
 	 * Seconds without a heartbeat after which a job in "processing" is considered dead.
-	 *
-	 * A heartbeat is written before every AI request, so a live job is only this quiet
-	 * if a single request hangs far beyond the request timeout.
 	 */
-	public const STALE_AFTER = 15 * MINUTE_IN_SECONDS;
+	public const STALE_AFTER = JobState::STALE_AFTER;
 
 	/**
 	 * Option name prefix of the per-post worker lock.
@@ -47,9 +49,10 @@ class TranslationJob {
 	/**
 	 * Constructor.
 	 *
-	 * @param Translator $translator Translator.
+	 * @param Translator    $translator Translator.
+	 * @param TextGenerator $generator  The translator's text generator, whose requests refresh the job heartbeat.
 	 */
-	public function __construct( private Translator $translator ) {}
+	public function __construct( private Translator $translator, private TextGenerator $generator ) {}
 
 	/**
 	 * Registers the cron hook.
@@ -128,7 +131,7 @@ class TranslationJob {
 		try {
 			return $this->run_locked( $post_id, $token );
 		} finally {
-			$this->translator->before_request( null );
+			$this->generator->before_request( null );
 			$this->release_lock( $post_id, $token );
 		}
 	}
@@ -153,7 +156,7 @@ class TranslationJob {
 			set_time_limit( 0 );
 		}
 
-		$this->translator->before_request( fn(): bool => $this->heartbeat( $post_id, $token ) );
+		$this->generator->before_request( fn(): bool => $this->heartbeat( $post_id, $token ) );
 
 		// Save as the requesting user so kses and capabilities match a normal edit.
 		$previous_user = get_current_user_id();
@@ -201,24 +204,40 @@ class TranslationJob {
 	}
 
 	/**
-	 * Returns the job status of a post, or an empty string when it has none.
+	 * Returns the state of a post's translation job, or null when it has none.
 	 *
 	 * @param int $post_id Post ID.
-	 * @return string
+	 * @return JobState|null
 	 */
-	public static function status( int $post_id ): string {
-		return (string) get_post_meta( $post_id, self::META_STATUS, true );
+	public function state( int $post_id ): ?JobState {
+		$status = (string) get_post_meta( $post_id, self::META_STATUS, true );
+		if ( ! in_array( $status, [ JobState::PENDING, JobState::PROCESSING, JobState::DONE, JobState::FAILED ], true ) ) {
+			return null;
+		}
+
+		$language = get_post_meta( $post_id, self::META_LANGUAGE, true );
+
+		return new JobState(
+			$status,
+			is_array( $language ) ? $language : [],
+			(string) get_post_meta( $post_id, self::META_ERROR, true ),
+			(int) get_post_meta( $post_id, self::META_UPDATED, true )
+		);
 	}
 
 	/**
-	 * Whether a job has had no heartbeat for long enough to be considered dead.
+	 * Queues a post's translation again with its original language and source post.
 	 *
-	 * @param int $post_id Post ID.
-	 * @return bool
+	 * @param int $post_id Translation post ID.
+	 * @param int $user_id User who requested the retry.
 	 */
-	public function is_stale( int $post_id ): bool {
-		$updated = (int) get_post_meta( $post_id, self::META_UPDATED, true );
-		return $updated > 0 && ( time() - $updated ) > self::STALE_AFTER;
+	public function requeue( int $post_id, int $user_id ): void {
+		$this->queue(
+			$post_id,
+			(array) get_post_meta( $post_id, self::META_LANGUAGE, true ),
+			(int) get_post_meta( $post_id, self::META_SOURCE, true ),
+			$user_id
+		);
 	}
 
 	/**

@@ -21,6 +21,7 @@ namespace AiTranslatorForPolylang;
 
 use AiTranslatorForPolylang\Admin\Admin;
 use AiTranslatorForPolylang\Cli\Command;
+use AiTranslatorForPolylang\Translation\AiClientGenerator;
 use AiTranslatorForPolylang\Translation\TranslationJob;
 use AiTranslatorForPolylang\Translation\Translator;
 
@@ -50,7 +51,8 @@ add_action(
 	static function (): void {
 		load_plugin_textdomain( 'ai-translator-for-polylang', false, dirname( plugin_basename( __FILE__ ) ) . '/languages' );
 
-		$job = new TranslationJob( new Translator() );
+		$generator = new AiClientGenerator();
+		$job       = new TranslationJob( new Translator( $generator ), $generator );
 		$job->register();
 
 		if ( ! Polylang::is_active() ) {

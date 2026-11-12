@@ -1,6 +1,6 @@
 <?php
 /**
- * Finds and replaces the translatable text in post content with the HTML API.
+ * Translates post content without letting the translation touch its markup.
  *
  * @package AiTranslatorForPolylang
  */
@@ -9,17 +9,19 @@ declare(strict_types=1);
 
 namespace AiTranslatorForPolylang\Translation;
 
+use WP_Error;
 use WP_HTML_Tag_Processor;
 
 /**
- * Pure helpers that read and write text segments without touching markup.
+ * The post content module: chunks content, extracts its text segments with the
+ * HTML API, has them translated, and writes the translations back.
  *
  * A segment is a text node, a translatable HTML attribute value (e.g. alt) or
  * a translatable string in a block delimiter's JSON attributes (e.g. label).
  * Tags, other attributes, URLs and block structure are never exposed, so they
  * cannot be changed by the translation.
  */
-final class ContentSegments {
+final class PostContent {
 
 	/**
 	 * HTML attributes whose values are translated by default.
@@ -30,6 +32,11 @@ final class ContentSegments {
 	 * Block attribute keys whose string values are translated by default.
 	 */
 	public const BLOCK_ATTRIBUTES = [ 'alt', 'caption', 'label', 'placeholder', 'title', 'buttonText', 'text', 'content', 'citation' ];
+
+	/**
+	 * Times the segments of a chunk are sent before a wrong answer is an error.
+	 */
+	private const ATTEMPTS = 2;
 
 	/**
 	 * Elements whose text is left as is.
@@ -52,6 +59,193 @@ final class ContentSegments {
 	private const DELIMITER_PATTERN = '/^(\s+wp:[a-z][a-z0-9_-]*(?:\/[a-z][a-z0-9_-]*)?\s+)(\{.*\})(\s*\/?\s*)$/s';
 
 	/**
+	 * Matches a whole block delimiter comment in content: opener, closer or self-closing.
+	 */
+	private const BLOCK_PATTERN = '/<!--\s+(?P<closer>\/)?wp:[a-z][a-z0-9_-]*(?:\/[a-z][a-z0-9_-]*)?(?:\s+\{(?:(?!-->).)*?\})?\s*(?P<void>\/)?-->/s';
+
+	/**
+	 * Translates post content chunk by chunk, changing only its text segments.
+	 *
+	 * Chunks are split between top-level blocks, or between paragraphs in
+	 * freeform content, and hold at most $chunk_size characters unless a single
+	 * block is longer. Chunks without text are not sent.
+	 *
+	 * @param string                                          $html               Post content.
+	 * @param callable(list<string>): (list<string>|WP_Error) $translate_segments Translates one chunk's segments, in order.
+	 * @param int                                             $chunk_size         Maximum characters per chunk.
+	 * @param list<string>                                    $html_attributes    Translatable HTML attribute names.
+	 * @param list<string>                                    $block_attributes   Translatable block attribute keys.
+	 * @return string|WP_Error The translated content, the callback's error, or
+	 *                         aitfp_segment_mismatch when the callback twice fails
+	 *                         to return one string per segment.
+	 */
+	public static function translate( string $html, callable $translate_segments, int $chunk_size, array $html_attributes = self::HTML_ATTRIBUTES, array $block_attributes = self::BLOCK_ATTRIBUTES ): string|WP_Error {
+		$translated = '';
+		foreach ( self::split( $html, $chunk_size ) as $chunk ) {
+			$result = self::translate_chunk( $chunk, $translate_segments, $html_attributes, $block_attributes );
+			if ( $result instanceof WP_Error ) {
+				return $result;
+			}
+			$translated .= $result;
+		}
+
+		return $translated;
+	}
+
+	/**
+	 * Translates the segments of one chunk, re-asking once when the answer does not fit.
+	 *
+	 * @param string                                          $chunk              Content chunk.
+	 * @param callable(list<string>): (list<string>|WP_Error) $translate_segments Callback.
+	 * @param list<string>                                    $html_attributes    Translatable HTML attribute names.
+	 * @param list<string>                                    $block_attributes   Translatable block attribute keys.
+	 * @return string|WP_Error
+	 */
+	private static function translate_chunk( string $chunk, callable $translate_segments, array $html_attributes, array $block_attributes ): string|WP_Error {
+		$segments = self::extract( $chunk, $html_attributes, $block_attributes );
+		if ( [] === $segments ) {
+			// Nothing human-readable to translate (whitespace, empty blocks, separators).
+			return $chunk;
+		}
+
+		for ( $attempt = 1; $attempt <= self::ATTEMPTS; $attempt++ ) {
+			$translations = $translate_segments( $segments );
+			if ( $translations instanceof WP_Error ) {
+				return $translations;
+			}
+
+			if ( self::fits( $translations, count( $segments ) ) ) {
+				return self::replace( $chunk, array_map( 'trim', $translations ), $html_attributes, $block_attributes );
+			}
+		}
+
+		return new WP_Error(
+			'aitfp_segment_mismatch',
+			__( 'The AI response did not return one translation per text segment, so it was not saved.', 'ai-translator-for-polylang' )
+		);
+	}
+
+	/**
+	 * Whether translations are a list of exactly $expected strings.
+	 *
+	 * @param mixed $translations Callback result.
+	 * @param int   $expected     Number of segments sent.
+	 * @return bool
+	 */
+	private static function fits( mixed $translations, int $expected ): bool {
+		if ( ! is_array( $translations ) || ! array_is_list( $translations ) || count( $translations ) !== $expected ) {
+			return false;
+		}
+
+		foreach ( $translations as $translation ) {
+			if ( ! is_string( $translation ) ) {
+				return false;
+			}
+		}
+
+		return true;
+	}
+
+	/**
+	 * Splits content into chunks of at most $max_length characters without breaking blocks.
+	 *
+	 * @param string $content    Post content.
+	 * @param int    $max_length Maximum chunk length in characters.
+	 * @return list<string> Chunks which, concatenated, equal the original content.
+	 */
+	private static function split( string $content, int $max_length ): array {
+		$chunks  = [];
+		$current = '';
+		foreach ( self::top_level_parts( $content ) as $part ) {
+			if ( '' !== $current && mb_strlen( $current ) + mb_strlen( $part ) > $max_length ) {
+				$chunks[] = $current;
+				$current  = '';
+			}
+			$current .= $part;
+		}
+		if ( '' !== $current ) {
+			$chunks[] = $current;
+		}
+
+		return $chunks;
+	}
+
+	/**
+	 * Splits content into top-level blocks and paragraph-level freeform parts.
+	 *
+	 * @param string $content Post content.
+	 * @return list<string>
+	 */
+	private static function top_level_parts( string $content ): array {
+		preg_match_all( self::BLOCK_PATTERN, $content, $matches, PREG_SET_ORDER | PREG_OFFSET_CAPTURE );
+
+		$parts = [];
+		$depth = 0;
+		$start = 0;
+		foreach ( $matches as $match ) {
+			$offset = $match[0][1];
+			$end    = $offset + strlen( $match[0][0] );
+
+			if ( 0 === $depth && $offset > $start ) {
+				array_push( $parts, ...self::split_freeform( substr( $content, $start, $offset - $start ) ) );
+				$start = $offset;
+			}
+
+			if ( isset( $match['closer'] ) && '' !== $match['closer'][0] ) {
+				$depth = max( 0, $depth - 1 );
+			} elseif ( ! isset( $match['void'] ) || '' === $match['void'][0] ) {
+				++$depth;
+			}
+
+			if ( 0 === $depth ) {
+				$parts[] = substr( $content, $start, $end - $start );
+				$start   = $end;
+			}
+		}
+
+		if ( $start < strlen( $content ) ) {
+			array_push( $parts, ...self::split_freeform( substr( $content, $start ) ) );
+		}
+
+		return $parts;
+	}
+
+	/**
+	 * Splits freeform (non-block) text after each blank line, keeping separators.
+	 *
+	 * @param string $text Freeform text.
+	 * @return list<string>
+	 */
+	private static function split_freeform( string $text ): array {
+		$parts = preg_split( '/(?<=\n\n)/', $text, -1, PREG_SPLIT_NO_EMPTY );
+		if ( false === $parts ) {
+			return [ $text ];
+		}
+
+		// Keep elements whose text is not translated in one segment, so a later
+		// chunk never starts inside them.
+		$segments = [];
+		$current  = '';
+		$depth    = 0;
+		foreach ( $parts as $part ) {
+			$current .= $part;
+			preg_match_all( '/<(\/?)(?:pre|code|kbd|samp|script|style|textarea)\b/i', $part, $tags );
+			foreach ( $tags[1] as $closer ) {
+				$depth = max( 0, $depth + ( '' === $closer ? 1 : -1 ) );
+			}
+			if ( 0 === $depth ) {
+				$segments[] = $current;
+				$current    = '';
+			}
+		}
+		if ( '' !== $current ) {
+			$segments[] = $current;
+		}
+
+		return $segments;
+	}
+
+	/**
 	 * Returns the translatable segments of a piece of markup, in document order.
 	 *
 	 * @param string       $html             Markup.
@@ -59,7 +253,7 @@ final class ContentSegments {
 	 * @param list<string> $block_attributes Translatable block attribute keys.
 	 * @return list<string>
 	 */
-	public static function extract( string $html, array $html_attributes = self::HTML_ATTRIBUTES, array $block_attributes = self::BLOCK_ATTRIBUTES ): array {
+	private static function extract( string $html, array $html_attributes, array $block_attributes ): array {
 		$segments = [];
 		self::map(
 			$html,
@@ -83,7 +277,7 @@ final class ContentSegments {
 	 * @param list<string> $block_attributes Translatable block attribute keys.
 	 * @return string
 	 */
-	public static function replace( string $html, array $translations, array $html_attributes = self::HTML_ATTRIBUTES, array $block_attributes = self::BLOCK_ATTRIBUTES ): string {
+	private static function replace( string $html, array $translations, array $html_attributes, array $block_attributes ): string {
 		return self::map(
 			$html,
 			static function ( string $text ) use ( &$translations ): string {

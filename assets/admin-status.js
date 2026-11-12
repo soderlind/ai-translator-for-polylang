@@ -26,7 +26,7 @@
 	}
 
 	const hasListNotice = notices.some((notice) => notice.dataset.aitfpEditor !== 'true');
-	if (hasListNotice && config.status !== 'pending' && config.status !== 'processing') {
+	if (hasListNotice && !config.active) {
 		clearQueuedParam();
 	}
 
@@ -76,6 +76,11 @@
 		} else if (job.status === 'failed') {
 			notice.classList.add('notice-error');
 			message.append(document.createTextNode(format(strings.failedMessage, language, job.error || strings.failed)));
+			addLink(message, job.retryUrl, strings.retry);
+		}
+
+		// A stale job is still "processing" but can be retried.
+		if (job.active && job.retryable) {
 			addLink(message, job.retryUrl, strings.retry);
 		}
 	}
@@ -143,7 +148,7 @@
 			clearPollError(notice);
 			updateNotice(notice, payload.data);
 			updatePostState(payload.data);
-			if (payload.data.status === 'done' || payload.data.status === 'failed') {
+			if (!payload.data.active) {
 				if (hasListNotice) {
 					clearQueuedParam();
 				}
@@ -156,7 +161,7 @@
 		window.setTimeout(() => poll(notice), config.interval);
 	}
 
-	if (config.status === 'pending' || config.status === 'processing') {
+	if (config.active) {
 		poll(notices[0]);
 	}
 })();
