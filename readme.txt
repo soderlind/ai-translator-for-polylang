@@ -5,7 +5,7 @@ Requires at least: 7.0
 Tested up to: 7.0
 Requires PHP: 8.3
 Requires Plugins: polylang
-Stable tag: 0.1.2
+Stable tag: 0.2.0
 License: GPL v2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -68,6 +68,16 @@ Actions: `aitfp_translated`, `aitfp_translation_failed`.
 See README.md for arguments.
 
 == Changelog ==
+
+= 0.2.0 =
+* The AI now gets only the text of the content, never the markup. Translations are written back into the original markup with the WordPress HTML API.
+* New filters `aitfp_translatable_html_attributes` and `aitfp_translatable_block_attributes` choose which attributes are translated.
+* Text inside `<code>`, `<kbd>` and `<samp>` is no longer translated. Text in `<textarea>` and `<title>` now is.
+* A translation that has stopped responding shows a retry link in the notice.
+* Fix: images could break in translated drafts.
+* Fix: shortcodes such as `[gallery ids="1,2"]` keep their quotes after translation.
+* Fix: block colour settings are no longer sent for translation.
+* Fix: code blocks in long classic posts are never split, so code is never translated.
 
 = 0.1.2 =
 * The translation status updates on its own, with no page reload, and the post list shows "AI translation complete" when the draft is ready.

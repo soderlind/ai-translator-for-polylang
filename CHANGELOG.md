@@ -6,15 +6,21 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-11-12
+
 ### Changed
 
 - The AI now gets only the text of the content, never the markup. The WordPress HTML API pulls out text nodes, `alt`, `title`, `aria-label` and `placeholder` values, and text in block attributes, then writes the translations back into the original markup.
 - New filters `aitfp_translatable_html_attributes` and `aitfp_translatable_block_attributes` choose which attributes are translated.
-- Text inside `<code>`, `<kbd>` and `<samp>` is no longer translated.
+- Text inside `<code>`, `<kbd>` and `<samp>` is no longer translated. Text in `<textarea>` and `<title>` now is.
+- A translation that has stopped responding shows a retry link in the notice.
 
 ### Fixed
 
-- Images could break in translated drafts because the AI could change an image's `src`, `class` or block `id`. Markup is now never sent to the AI.
+- Images could break in translated drafts because the AI could change an image's `src`, `class` or block `id`.
+- Shortcodes such as `[gallery ids="1,2"]` keep their quotes after translation.
+- Block colour settings (e.g. `style.color.text`) are no longer sent for translation.
+- Code blocks in long classic posts are never split, so code is never translated.
 
 ## [0.1.2] - 2026-11-11
 
@@ -57,6 +63,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - End-to-end acceptance test, `scripts/acceptance.sh`, documented in `docs/acceptance-test.md`.
 - Uninstall removes the plugin's post meta and scheduled events on every site in a multisite network.
 
+[0.2.0]: https://github.com/soderlind/ai-translator-for-polylang/releases/tag/0.2.0
 [0.1.2]: https://github.com/soderlind/ai-translator-for-polylang/releases/tag/0.1.2
 [0.1.1]: https://github.com/soderlind/ai-translator-for-polylang/releases/tag/0.1.1
 [0.1.0]: https://github.com/soderlind/ai-translator-for-polylang/releases/tag/0.1.0

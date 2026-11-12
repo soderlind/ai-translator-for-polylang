@@ -222,7 +222,7 @@ class Admin {
 			'aitfp-admin-status',
 			plugins_url( 'assets/admin-status.js', dirname( __DIR__, 2 ) . '/ai-translator-for-polylang.php' ),
 			[],
-			defined( 'AITFP_VERSION' ) ? AITFP_VERSION : '0.1.2',
+			defined( 'AITFP_VERSION' ) ? AITFP_VERSION : '0.2.0',
 			true
 		);
 		wp_localize_script(
