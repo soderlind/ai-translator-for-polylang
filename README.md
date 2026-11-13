@@ -2,6 +2,8 @@
 
 Click Polylang's **Add a translation** (+) button and get a linked draft that the WordPress AI Client translates in the background.
 
+https://github.com/user-attachments/assets/1afa7b67-d9fa-44a5-9eff-9bbad68fc076
+
 ## Requirements
 
 - WordPress 7.0 or later (includes the WordPress AI Client, `wp_ai_client_prompt()`)
