@@ -40,6 +40,16 @@ Translate with AI for Polylang changes what Polylang's "Add a translation" (+) b
 3. Upload the plugin to `/wp-content/plugins/translate-with-ai-for-polylang/` and activate it.
 4. In a post list, click the + next to a language to create an AI translation.
 
+= Upgrading from AI Translator for Polylang =
+
+This plugin was previously called AI Translator for Polylang (`ai-translator-for-polylang`, version 0.2.0 and earlier). It installs in a new folder and does not replace the old plugin.
+
+1. Wait until no post shows **Translating to {language}…**. This plugin cannot resume translations started by the old plugin.
+2. Deactivate and delete AI Translator for Polylang. If both plugins are active, both handle the + button.
+3. Install and activate Translate with AI for Polylang.
+
+If a draft was left unfinished, delete it permanently and click + again to create a new translation.
+
 == Frequently Asked Questions ==
 
 = How do I choose the AI model? =
@@ -66,6 +76,11 @@ Filters: `twaifp_prompt_builder`, `twaifp_content_chunk_size`, `twaifp_request_t
 Actions: `twaifp_translated`, `twaifp_translation_failed`.
 
 See README.md for arguments.
+
+== Upgrade Notice ==
+
+= 1.0.0 =
+Renamed from AI Translator for Polylang. Let pending translations finish, then deactivate and delete the old plugin before activating this one.
 
 == Changelog ==
 

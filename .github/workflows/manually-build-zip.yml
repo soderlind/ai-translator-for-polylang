@@ -21,6 +21,14 @@ jobs:
         with:
           ref: ${{ github.event.inputs.tag }}
 
+      # Tags before 1.0.0 use the old ai-translator-for-polylang slug and must not be packaged under the new one.
+      - name: Check plugin slug
+        run: |
+          if [ ! -f translate-with-ai-for-polylang.php ]; then
+            echo "::error::Tag ${{ github.event.inputs.tag }} predates the rename to translate-with-ai-for-polylang and cannot be packaged by this workflow."
+            exit 1
+          fi
+
       - name: Stage release files
         run: |
           mkdir -p /tmp/translate-with-ai-for-polylang

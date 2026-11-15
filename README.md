@@ -80,6 +80,16 @@ add_filter( 'twaifp_prompt_builder', function ( $builder ) {
 } );
 ```
 
+## Upgrading from AI Translator for Polylang
+
+This plugin was previously called AI Translator for Polylang (`ai-translator-for-polylang`, version 0.2.0 and earlier). It installs in a new folder and does not replace the old plugin.
+
+1. Wait until no post shows **Translating to {language}…**. This plugin cannot resume translations started by the old plugin.
+2. Deactivate and delete AI Translator for Polylang. If both plugins are active, both handle the + button.
+3. Install and activate Translate with AI for Polylang.
+
+If a draft was left unfinished, delete it permanently and click + again to create a new translation.
+
 ## Uninstall
 
 When you delete the plugin, it removes its post meta (`_twaifp_*`) and any scheduled `twaifp_translate_post` events, on every site in a multisite network. The translated posts stay.
