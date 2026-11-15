@@ -1,5 +1,5 @@
 {
-	"name": "soderlind/ai-translator-for-polylang",
+	"name": "soderlind/translate-with-ai-for-polylang",
 	"description": "Create Polylang translations with the WordPress AI Client.",
 	"type": "wordpress-plugin",
 	"license": "GPL-2.0-or-later",
@@ -8,12 +8,12 @@
 	},
 	"autoload": {
 		"psr-4": {
-			"AiTranslatorForPolylang\\": "src/"
+			"Soderlind\\TranslateWithAiForPolylang\\": "src/"
 		}
 	},
 	"autoload-dev": {
 		"psr-4": {
-			"AiTranslatorForPolylang\\Tests\\": "tests/php/"
+			"Soderlind\\TranslateWithAiForPolylang\\Tests\\": "tests/php/"
 		},
 		"classmap": [
 			"vendor/johnpbloch/wordpress-core/wp-includes/class-wp-token-map.php",

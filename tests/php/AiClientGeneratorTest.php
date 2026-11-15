@@ -2,14 +2,14 @@
 /**
  * Tests for AiClientGenerator.
  *
- * @package AiTranslatorForPolylang\Tests
+ * @package TranslateWithAiForPolylang\Tests
  */
 
 declare(strict_types=1);
 
-namespace AiTranslatorForPolylang\Tests;
+namespace Soderlind\TranslateWithAiForPolylang\Tests;
 
-use AiTranslatorForPolylang\Translation\AiClientGenerator;
+use Soderlind\TranslateWithAiForPolylang\Translation\AiClientGenerator;
 use Brain\Monkey\Functions;
 use WP_Error;
 
@@ -69,7 +69,7 @@ final class AiClientGeneratorTest extends TestCase {
 		$result = $this->generator()->generate( 'Hello', 'Translate', 'title', self::LANGUAGE );
 
 		$this->assertInstanceOf( WP_Error::class, $result );
-		$this->assertSame( 'aitfp_provider_unavailable', $result->get_error_code() );
+		$this->assertSame( 'twaifp_provider_unavailable', $result->get_error_code() );
 		$this->assertSame( 'The AI provider could not be reached. Check Settings → Connectors and retry.', $result->get_error_message() );
 		$this->assertSame( 2, $this->requests );
 	}
@@ -101,7 +101,7 @@ final class AiClientGeneratorTest extends TestCase {
 		$result = $generator->generate( 'Hello', 'Translate', 'title', self::LANGUAGE );
 
 		$this->assertInstanceOf( WP_Error::class, $result );
-		$this->assertSame( 'aitfp_lock_lost', $result->get_error_code() );
+		$this->assertSame( 'twaifp_lock_lost', $result->get_error_code() );
 		$this->assertSame( 2, $this->requests );
 	}
 

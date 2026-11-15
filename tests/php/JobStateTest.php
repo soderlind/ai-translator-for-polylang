@@ -2,16 +2,16 @@
 /**
  * Tests for JobState and TranslationJob::state().
  *
- * @package AiTranslatorForPolylang\Tests
+ * @package TranslateWithAiForPolylang\Tests
  */
 
 declare(strict_types=1);
 
-namespace AiTranslatorForPolylang\Tests;
+namespace Soderlind\TranslateWithAiForPolylang\Tests;
 
-use AiTranslatorForPolylang\Translation\JobState;
-use AiTranslatorForPolylang\Translation\TranslationJob;
-use AiTranslatorForPolylang\Translation\Translator;
+use Soderlind\TranslateWithAiForPolylang\Translation\JobState;
+use Soderlind\TranslateWithAiForPolylang\Translation\TranslationJob;
+use Soderlind\TranslateWithAiForPolylang\Translation\Translator;
 use Brain\Monkey\Functions;
 
 final class JobStateTest extends TestCase {

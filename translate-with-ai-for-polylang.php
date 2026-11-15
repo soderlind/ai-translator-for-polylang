@@ -1,8 +1,8 @@
 <?php
 /**
- * Plugin Name: AI Translator for Polylang
+ * Plugin Name: Translate with AI for Polylang
  * Description: Makes Polylang's "Add a translation" (+) create a linked draft that is translated with the WordPress AI Client in the background.
- * Version: 0.2.0
+ * Version: 1.0.0
  * Author: Per Soderlind
  * Author URI: https://soderlind.no
  * License: GPL v2 or later
@@ -10,26 +10,26 @@
  * Requires at least: 7.0
  * Requires PHP: 8.3
  * Requires Plugins: polylang
- * Text Domain: ai-translator-for-polylang
+ * Text Domain: translate-with-ai-for-polylang
  *
- * @package AiTranslatorForPolylang
+ * @package TranslateWithAiForPolylang
  */
 
 declare(strict_types=1);
 
-namespace AiTranslatorForPolylang;
+namespace Soderlind\TranslateWithAiForPolylang;
 
-use AiTranslatorForPolylang\Admin\Admin;
-use AiTranslatorForPolylang\Cli\Command;
-use AiTranslatorForPolylang\Translation\AiClientGenerator;
-use AiTranslatorForPolylang\Translation\TranslationJob;
-use AiTranslatorForPolylang\Translation\Translator;
+use Soderlind\TranslateWithAiForPolylang\Admin\Admin;
+use Soderlind\TranslateWithAiForPolylang\Cli\Command;
+use Soderlind\TranslateWithAiForPolylang\Translation\AiClientGenerator;
+use Soderlind\TranslateWithAiForPolylang\Translation\TranslationJob;
+use Soderlind\TranslateWithAiForPolylang\Translation\Translator;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'AITFP_VERSION', '0.2.0' );
+define( 'TWAIFP_VERSION', '1.0.0' );
 
 if ( file_exists( __DIR__ . '/vendor/autoload.php' ) ) {
 	require_once __DIR__ . '/vendor/autoload.php';
@@ -49,7 +49,7 @@ if ( file_exists( __DIR__ . '/vendor/autoload.php' ) ) {
 add_action(
 	'plugins_loaded',
 	static function (): void {
-		load_plugin_textdomain( 'ai-translator-for-polylang', false, dirname( plugin_basename( __FILE__ ) ) . '/languages' );
+		load_plugin_textdomain( 'translate-with-ai-for-polylang', false, dirname( plugin_basename( __FILE__ ) ) . '/languages' );
 
 		$generator = new AiClientGenerator();
 		$job       = new TranslationJob( new Translator( $generator ), $generator );
@@ -64,7 +64,7 @@ add_action(
 		( new Admin( $creator, $job ) )->register();
 
 		if ( defined( 'WP_CLI' ) && WP_CLI ) {
-			\WP_CLI::add_command( 'aitfp', new Command( $creator, $job ) );
+			\WP_CLI::add_command( 'twaifp', new Command( $creator, $job ) );
 		}
 	},
 	20

@@ -2,7 +2,7 @@
 /**
  * WordPress classes needed by unit tests. Functions are mocked with Brain Monkey.
  *
- * @package AiTranslatorForPolylang\Tests
+ * @package TranslateWithAiForPolylang\Tests
  */
 
 declare(strict_types=1);

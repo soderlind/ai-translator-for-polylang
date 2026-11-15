@@ -2,14 +2,14 @@
 /**
  * Creates a translation and queues its AI translation.
  *
- * @package AiTranslatorForPolylang
+ * @package TranslateWithAiForPolylang
  */
 
 declare(strict_types=1);
 
-namespace AiTranslatorForPolylang;
+namespace Soderlind\TranslateWithAiForPolylang;
 
-use AiTranslatorForPolylang\Translation\TranslationJob;
+use Soderlind\TranslateWithAiForPolylang\Translation\TranslationJob;
 use WP_Error;
 use WP_Post;
 

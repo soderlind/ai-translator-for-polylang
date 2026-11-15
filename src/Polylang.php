@@ -2,12 +2,12 @@
 /**
  * Polylang integration.
  *
- * @package AiTranslatorForPolylang
+ * @package TranslateWithAiForPolylang
  */
 
 declare(strict_types=1);
 
-namespace AiTranslatorForPolylang;
+namespace Soderlind\TranslateWithAiForPolylang;
 
 use WP_Error;
 use WP_Post;

@@ -1,12 +1,12 @@
 (function () {
 	'use strict';
 
-	const config = window.aitfpTranslationStatus;
+	const config = window.twaifpTranslationStatus;
 	if (!config) {
 		return;
 	}
 
-	const notices = Array.from(document.querySelectorAll('[data-aitfp-status-notice]'));
+	const notices = Array.from(document.querySelectorAll('[data-twaifp-status-notice]'));
 	if (!notices.length) {
 		return;
 	}
@@ -19,13 +19,13 @@
 
 	function clearQueuedParam() {
 		const url = new URL(window.location.href);
-		if (url.searchParams.has('aitfp_queued')) {
-			url.searchParams.delete('aitfp_queued');
+		if (url.searchParams.has('twaifp_queued')) {
+			url.searchParams.delete('twaifp_queued');
 			window.history.replaceState(window.history.state, '', `${url.pathname}${url.search}${url.hash}`);
 		}
 	}
 
-	const hasListNotice = notices.some((notice) => notice.dataset.aitfpEditor !== 'true');
+	const hasListNotice = notices.some((notice) => notice.dataset.twaifpEditor !== 'true');
 	if (hasListNotice && !config.active) {
 		clearQueuedParam();
 	}
@@ -43,8 +43,8 @@
 	}
 
 	function updateNotice(notice, job) {
-		const message = notice.querySelector('[data-aitfp-status-message]');
-		const isEditor = notice.dataset.aitfpEditor === 'true';
+		const message = notice.querySelector('[data-twaifp-status-message]');
+		const isEditor = notice.dataset.twaifpEditor === 'true';
 		const language = job.language || '';
 		message.replaceChildren();
 
@@ -86,7 +86,7 @@
 	}
 
 	function updatePostState(job) {
-		const state = document.querySelector(`[data-aitfp-post-state][data-aitfp-post-id="${config.postId}"]`);
+		const state = document.querySelector(`[data-twaifp-post-state][data-twaifp-post-id="${config.postId}"]`);
 		if (!state) {
 			return;
 		}
@@ -98,7 +98,7 @@
 			state.textContent = strings.done;
 		} else if (job.status === 'failed') {
 			const details = document.createElement('details');
-			details.className = 'aitfp-translation-error';
+			details.className = 'twaifp-translation-error';
 			const summary = document.createElement('summary');
 			summary.textContent = strings.failed;
 			const error = document.createElement('p');
@@ -109,10 +109,10 @@
 	}
 
 	function showPollError(notice, message = strings.pollError) {
-		let error = notice.querySelector('[data-aitfp-poll-error]');
+		let error = notice.querySelector('[data-twaifp-poll-error]');
 		if (!error) {
 			error = document.createElement('p');
-			error.dataset.aitfpPollError = '';
+			error.dataset.twaifpPollError = '';
 			error.setAttribute('role', 'alert');
 			notice.append(error);
 		}
@@ -120,7 +120,7 @@
 	}
 
 	function clearPollError(notice) {
-		notice.querySelector('[data-aitfp-poll-error]')?.remove();
+		notice.querySelector('[data-twaifp-poll-error]')?.remove();
 	}
 
 	async function poll(notice) {
@@ -130,7 +130,7 @@
 				credentials: 'same-origin',
 				headers: { 'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8' },
 				body: new URLSearchParams({
-					action: 'aitfp_translation_status',
+					action: 'twaifp_translation_status',
 					post_id: String(config.postId),
 					nonce: config.nonce,
 				}),

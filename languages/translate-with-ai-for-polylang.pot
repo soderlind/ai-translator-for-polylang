@@ -2,8 +2,8 @@
 # This file is distributed under the GPL v2 or later.
 msgid ""
 msgstr ""
-"Project-Id-Version: AI Translator for Polylang 0.2.0\n"
-"Report-Msgid-Bugs-To: https://wordpress.org/support/plugin/ai-translator-for-polylang\n"
+"Project-Id-Version: Translate with AI for Polylang 1.0.0\n"
+"Report-Msgid-Bugs-To: https://wordpress.org/support/plugin/translate-with-ai-for-polylang\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
 "MIME-Version: 1.0\n"
@@ -12,25 +12,25 @@ msgstr ""
 "POT-Creation-Date: 2026-11-12T00:03:30+00:00\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "X-Generator: WP-CLI 2.12.0\n"
-"X-Domain: ai-translator-for-polylang\n"
+"X-Domain: translate-with-ai-for-polylang\n"
 
 #. Plugin Name of the plugin
-#: ai-translator-for-polylang.php
-msgid "AI Translator for Polylang"
+#: translate-with-ai-for-polylang.php
+msgid "Translate with AI for Polylang"
 msgstr ""
 
 #. Description of the plugin
-#: ai-translator-for-polylang.php
+#: translate-with-ai-for-polylang.php
 msgid "Makes Polylang's \"Add a translation\" (+) create a linked draft that is translated with the WordPress AI Client in the background."
 msgstr ""
 
 #. Author of the plugin
-#: ai-translator-for-polylang.php
+#: translate-with-ai-for-polylang.php
 msgid "Per Soderlind"
 msgstr ""
 
 #. Author URI of the plugin
-#: ai-translator-for-polylang.php
+#: translate-with-ai-for-polylang.php
 msgid "https://soderlind.no"
 msgstr ""
 

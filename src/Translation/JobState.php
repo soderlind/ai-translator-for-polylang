@@ -2,12 +2,12 @@
 /**
  * Read-only snapshot of a translation job.
  *
- * @package AiTranslatorForPolylang
+ * @package TranslateWithAiForPolylang
  */
 
 declare(strict_types=1);
 
-namespace AiTranslatorForPolylang\Translation;
+namespace Soderlind\TranslateWithAiForPolylang\Translation;
 
 /**
  * What is known about a translation draft's job, and what that means.

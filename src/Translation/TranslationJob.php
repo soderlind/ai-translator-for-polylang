@@ -2,12 +2,12 @@
 /**
  * Background translation job.
  *
- * @package AiTranslatorForPolylang
+ * @package TranslateWithAiForPolylang
  */
 
 declare(strict_types=1);
 
-namespace AiTranslatorForPolylang\Translation;
+namespace Soderlind\TranslateWithAiForPolylang\Translation;
 
 use WP_Error;
 use WP_Post;
@@ -17,14 +17,14 @@ use WP_Post;
  */
 class TranslationJob {
 
-	public const HOOK = 'aitfp_translate_post';
+	public const HOOK = 'twaifp_translate_post';
 
-	public const META_STATUS   = '_aitfp_status';
-	public const META_LANGUAGE = '_aitfp_language';
-	public const META_ERROR    = '_aitfp_error';
-	public const META_USER     = '_aitfp_user';
-	public const META_SOURCE   = '_aitfp_source';
-	public const META_UPDATED  = '_aitfp_updated';
+	public const META_STATUS   = '_twaifp_status';
+	public const META_LANGUAGE = '_twaifp_language';
+	public const META_ERROR    = '_twaifp_error';
+	public const META_USER     = '_twaifp_user';
+	public const META_SOURCE   = '_twaifp_source';
+	public const META_UPDATED  = '_twaifp_updated';
 
 	/**
 	 * Every post meta key the job writes, e.g. for cleanup on uninstall.
@@ -44,7 +44,7 @@ class TranslationJob {
 	/**
 	 * Option name prefix of the per-post worker lock.
 	 */
-	public const LOCK_PREFIX = '_aitfp_lock_';
+	public const LOCK_PREFIX = '_twaifp_lock_';
 
 	/**
 	 * Constructor.
@@ -111,7 +111,7 @@ class TranslationJob {
 		 * @param bool $spawn   Whether to spawn WP-Cron. Default true.
 		 * @param int  $post_id Translation post ID.
 		 */
-		if ( apply_filters( 'aitfp_spawn_cron', true, $post_id ) ) {
+		if ( apply_filters( 'twaifp_spawn_cron', true, $post_id ) ) {
 			spawn_cron();
 		}
 	}
@@ -125,7 +125,7 @@ class TranslationJob {
 	public function run( int $post_id ) {
 		$token = $this->acquire_lock( $post_id );
 		if ( null === $token ) {
-			return new WP_Error( 'aitfp_in_progress', __( 'This post is already being translated.', 'ai-translator-for-polylang' ) );
+			return new WP_Error( 'twaifp_in_progress', __( 'This post is already being translated.', 'translate-with-ai-for-polylang' ) );
 		}
 
 		try {
@@ -148,7 +148,7 @@ class TranslationJob {
 		$post     = get_post( $post_id );
 		$language = get_post_meta( $post_id, self::META_LANGUAGE, true );
 		if ( ! $post instanceof WP_Post || ! is_array( $language ) || empty( $language['locale'] ) ) {
-			return new WP_Error( 'aitfp_invalid_job', __( 'Nothing to translate for this post.', 'ai-translator-for-polylang' ) );
+			return new WP_Error( 'twaifp_invalid_job', __( 'Nothing to translate for this post.', 'translate-with-ai-for-polylang' ) );
 		}
 
 		$this->set_status( $post_id, self::STATUS_PROCESSING );
@@ -169,9 +169,9 @@ class TranslationJob {
 
 		// A newer worker owns the job now; leave its status alone.
 		if ( ! $this->owns_lock( $post_id, $token ) ) {
-			return is_wp_error( $result ) && 'aitfp_lock_lost' === $result->get_error_code()
+			return is_wp_error( $result ) && 'twaifp_lock_lost' === $result->get_error_code()
 				? $result
-				: new WP_Error( 'aitfp_lock_lost', __( 'Another worker took over this translation.', 'ai-translator-for-polylang' ) );
+				: new WP_Error( 'twaifp_lock_lost', __( 'Another worker took over this translation.', 'translate-with-ai-for-polylang' ) );
 		}
 
 		if ( is_wp_error( $result ) ) {
@@ -185,7 +185,7 @@ class TranslationJob {
 			 * @param WP_Error             $result   Error.
 			 * @param array<string,string> $language Target language.
 			 */
-			do_action( 'aitfp_translation_failed', $post_id, $result, $language );
+			do_action( 'twaifp_translation_failed', $post_id, $result, $language );
 			return $result;
 		}
 
@@ -199,7 +199,7 @@ class TranslationJob {
 		 * @param array<string,string> $language  Target language.
 		 * @param int                  $source_id Source post ID.
 		 */
-		do_action( 'aitfp_translated', $post_id, $language, (int) get_post_meta( $post_id, self::META_SOURCE, true ) );
+		do_action( 'twaifp_translated', $post_id, $language, (int) get_post_meta( $post_id, self::META_SOURCE, true ) );
 		return true;
 	}
 
@@ -267,7 +267,7 @@ class TranslationJob {
 		}
 
 		if ( ! $this->heartbeat( $post->ID, $token ) ) {
-			return new WP_Error( 'aitfp_lock_lost', __( 'Another worker took over this translation.', 'ai-translator-for-polylang' ) );
+			return new WP_Error( 'twaifp_lock_lost', __( 'Another worker took over this translation.', 'translate-with-ai-for-polylang' ) );
 		}
 
 		// Modification times have one-second precision, so compare the fields too.
@@ -277,8 +277,8 @@ class TranslationJob {
 			|| [ $current->post_modified_gmt, $current->post_title, $current->post_excerpt, $current->post_content ] !== $snapshot
 		) {
 			return new WP_Error(
-				'aitfp_post_changed',
-				__( 'The post was edited while it was being translated, so the translation was not saved. Retry to translate the current version.', 'ai-translator-for-polylang' )
+				'twaifp_post_changed',
+				__( 'The post was edited while it was being translated, so the translation was not saved. Retry to translate the current version.', 'translate-with-ai-for-polylang' )
 			);
 		}
 
@@ -299,7 +299,7 @@ class TranslationJob {
 		 * @param WP_Post              $post     Post before translation.
 		 * @param array<string,string> $language Target language.
 		 */
-		$data = apply_filters( 'aitfp_translated_post_data', $data, $post, $language );
+		$data = apply_filters( 'twaifp_translated_post_data', $data, $post, $language );
 
 		$updated = wp_update_post( wp_slash( $data ), true );
 		return is_wp_error( $updated ) ? $updated : true;

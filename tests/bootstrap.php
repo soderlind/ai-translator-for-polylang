@@ -5,7 +5,7 @@
  * WordPress functions are mocked per test with Brain Monkey (see TestCase).
  * The HTML API classes come from the johnpbloch/wordpress-core dev dependency.
  *
- * @package AiTranslatorForPolylang\Tests
+ * @package TranslateWithAiForPolylang\Tests
  */
 
 declare(strict_types=1);

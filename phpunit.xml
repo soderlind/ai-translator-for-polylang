@@ -9,7 +9,7 @@
 	failOnWarning="true"
 >
 	<testsuites>
-		<testsuite name="AI Translator for Polylang">
+		<testsuite name="Translate with AI for Polylang">
 			<directory suffix="Test.php">tests/php</directory>
 		</testsuite>
 	</testsuites>

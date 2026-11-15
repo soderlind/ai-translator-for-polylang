@@ -2,16 +2,16 @@
 /**
  * Admin UI: Polylang "Add a translation" link, retry action and status display.
  *
- * @package AiTranslatorForPolylang
+ * @package TranslateWithAiForPolylang
  */
 
 declare(strict_types=1);
 
-namespace AiTranslatorForPolylang\Admin;
+namespace Soderlind\TranslateWithAiForPolylang\Admin;
 
-use AiTranslatorForPolylang\Creator;
-use AiTranslatorForPolylang\Translation\JobState;
-use AiTranslatorForPolylang\Translation\TranslationJob;
+use Soderlind\TranslateWithAiForPolylang\Creator;
+use Soderlind\TranslateWithAiForPolylang\Translation\JobState;
+use Soderlind\TranslateWithAiForPolylang\Translation\TranslationJob;
 use WP_Post;
 
 /**
@@ -19,9 +19,9 @@ use WP_Post;
  */
 class Admin {
 
-	private const ACTION_TRANSLATE = 'aitfp_translate';
-	private const ACTION_RETRY     = 'aitfp_retry';
-	private const ACTION_STATUS    = 'aitfp_translation_status';
+	private const ACTION_TRANSLATE = 'twaifp_translate';
+	private const ACTION_RETRY     = 'twaifp_retry';
+	private const ACTION_STATUS    = 'twaifp_translation_status';
 
 	/**
 	 * Constructor.
@@ -81,19 +81,19 @@ class Admin {
 	public function handle_translate(): void {
 		$post = $this->requested_post();
 		if ( ! $post ) {
-			wp_die( esc_html__( 'Post not found.', 'ai-translator-for-polylang' ), '', [ 'response' => 404 ] );
+			wp_die( esc_html__( 'Post not found.', 'translate-with-ai-for-polylang' ), '', [ 'response' => 404 ] );
 		}
 
 		check_admin_referer( self::ACTION_TRANSLATE . '_' . $post->ID );
 
 		if ( ! $this->creator->can_translate( $post ) ) {
-			wp_die( esc_html__( 'You are not allowed to translate this post.', 'ai-translator-for-polylang' ), '', [ 'response' => 403 ] );
+			wp_die( esc_html__( 'You are not allowed to translate this post.', 'translate-with-ai-for-polylang' ), '', [ 'response' => 403 ] );
 		}
 
 		$code     = isset( $_GET['language'] ) ? sanitize_key( wp_unslash( $_GET['language'] ) ) : '';
 		$language = $this->creator->language( $post, $code );
 		if ( ! $language ) {
-			wp_die( esc_html__( 'This post already has a translation in that language.', 'ai-translator-for-polylang' ), '', [ 'response' => 400, 'back_link' => true ] );
+			wp_die( esc_html__( 'This post already has a translation in that language.', 'translate-with-ai-for-polylang' ), '', [ 'response' => 400, 'back_link' => true ] );
 		}
 
 		$translation_id = $this->creator->create( $post, $language );
@@ -113,10 +113,10 @@ class Admin {
 	 */
 	public function row_actions( $actions, $post ) {
 		if ( $post instanceof WP_Post && $this->can_retry( $post ) ) {
-			$actions['aitfp_retry'] = sprintf(
+			$actions['twaifp_retry'] = sprintf(
 				'<a href="%1$s">%2$s</a>',
 				esc_url( $this->retry_url( $post->ID ) ),
-				esc_html__( 'Retry translation', 'ai-translator-for-polylang' )
+				esc_html__( 'Retry translation', 'translate-with-ai-for-polylang' )
 			);
 		}
 
@@ -143,20 +143,20 @@ class Admin {
 		if ( $state->is_active() ) {
 			$label = esc_html(
 				/* translators: %s: Language name. */
-				sprintf( __( 'Translating to %s…', 'ai-translator-for-polylang' ), $state->language_name() )
+				sprintf( __( 'Translating to %s…', 'translate-with-ai-for-polylang' ), $state->language_name() )
 			);
-			$states['aitfp'] = $this->post_state_markup( $post->ID, $label );
+			$states['twaifp'] = $this->post_state_markup( $post->ID, $label );
 		} elseif ( JobState::DONE === $state->status ) {
-			$states['aitfp'] = $this->post_state_markup(
+			$states['twaifp'] = $this->post_state_markup(
 				$post->ID,
-				esc_html__( 'AI translation complete', 'ai-translator-for-polylang' )
+				esc_html__( 'AI translation complete', 'translate-with-ai-for-polylang' )
 			);
 		} elseif ( JobState::FAILED === $state->status ) {
-			$states['aitfp'] = $this->post_state_markup(
+			$states['twaifp'] = $this->post_state_markup(
 				$post->ID,
 				sprintf(
-					'<details class="aitfp-translation-error"><summary>%1$s</summary><p>%2$s</p></details>',
-					esc_html__( 'Translation failed — view error', 'ai-translator-for-polylang' ),
+					'<details class="twaifp-translation-error"><summary>%1$s</summary><p>%2$s</p></details>',
+					esc_html__( 'Translation failed — view error', 'translate-with-ai-for-polylang' ),
 					esc_html( $state->error )
 				)
 			);
@@ -171,13 +171,13 @@ class Admin {
 	public function handle_retry(): void {
 		$post = $this->requested_post();
 		if ( ! $post ) {
-			wp_die( esc_html__( 'Post not found.', 'ai-translator-for-polylang' ), '', [ 'response' => 404 ] );
+			wp_die( esc_html__( 'Post not found.', 'translate-with-ai-for-polylang' ), '', [ 'response' => 404 ] );
 		}
 
 		check_admin_referer( self::ACTION_RETRY . '_' . $post->ID );
 
 		if ( ! $this->can_retry( $post ) ) {
-			wp_die( esc_html__( 'This translation cannot be retried.', 'ai-translator-for-polylang' ), '', [ 'response' => 403 ] );
+			wp_die( esc_html__( 'This translation cannot be retried.', 'translate-with-ai-for-polylang' ), '', [ 'response' => 403 ] );
 		}
 
 		$this->job->requeue( $post->ID, get_current_user_id() );
@@ -204,7 +204,7 @@ class Admin {
 		if ( $is_editor ) {
 			$post_id = isset( $_GET['post'] ) ? absint( $_GET['post'] ) : 0; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only status display.
 		} elseif ( 'edit' === $screen->base ) {
-			$post_id = isset( $_GET['aitfp_queued'] ) ? absint( $_GET['aitfp_queued'] ) : 0; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only status display.
+			$post_id = isset( $_GET['twaifp_queued'] ) ? absint( $_GET['twaifp_queued'] ) : 0; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only status display.
 		} else {
 			return;
 		}
@@ -219,15 +219,15 @@ class Admin {
 		}
 
 		wp_enqueue_script(
-			'aitfp-admin-status',
-			plugins_url( 'assets/admin-status.js', dirname( __DIR__, 2 ) . '/ai-translator-for-polylang.php' ),
+			'twaifp-admin-status',
+			plugins_url( 'assets/admin-status.js', dirname( __DIR__, 2 ) . '/translate-with-ai-for-polylang.php' ),
 			[],
-			defined( 'AITFP_VERSION' ) ? AITFP_VERSION : '0.2.0',
+			defined( 'TWAIFP_VERSION' ) ? TWAIFP_VERSION : '1.0.0',
 			true
 		);
 		wp_localize_script(
-			'aitfp-admin-status',
-			'aitfpTranslationStatus',
+			'twaifp-admin-status',
+			'twaifpTranslationStatus',
 			[
 				'ajaxUrl'   => admin_url( 'admin-ajax.php' ),
 				'nonce'     => wp_create_nonce( self::ACTION_STATUS ),
@@ -238,21 +238,21 @@ class Admin {
 				'retryable' => (bool) $state?->can_retry(),
 				'interval'  => 10000,
 				'strings'   => [
-					'pending'       => __( 'Translation to %s is queued.', 'ai-translator-for-polylang' ),
-					'processing'    => __( 'Translating to %s in the background.', 'ai-translator-for-polylang' ),
-					'autoUpdate'    => __( 'This notice will update automatically.', 'ai-translator-for-polylang' ),
-					'editorWarning' => __( 'Avoid editing or publishing this draft until translation finishes. Edits made while the AI is working will discard its result.', 'ai-translator-for-polylang' ),
-					'done'          => __( 'AI translation complete', 'ai-translator-for-polylang' ),
-					'ready'         => __( 'Translation to %s is ready to review.', 'ai-translator-for-polylang' ),
-					'failedMessage' => __( 'Translation to %1$s failed: %2$s', 'ai-translator-for-polylang' ),
-					'failed'        => __( 'Translation failed', 'ai-translator-for-polylang' ),
-					'viewError'     => __( 'View error', 'ai-translator-for-polylang' ),
-					'openDraft'     => __( 'Open draft', 'ai-translator-for-polylang' ),
-					'retry'         => __( 'Retry translation', 'ai-translator-for-polylang' ),
-					'reloadEditor'  => __( 'Reload this editor to see the translated draft.', 'ai-translator-for-polylang' ),
-					'reload'        => __( 'Reload editor', 'ai-translator-for-polylang' ),
-					'pollError'     => __( 'Could not refresh translation status. Retrying…', 'ai-translator-for-polylang' ),
-					'statusError'   => __( 'Translation status is unavailable. Reload the page to check again.', 'ai-translator-for-polylang' ),
+					'pending'       => __( 'Translation to %s is queued.', 'translate-with-ai-for-polylang' ),
+					'processing'    => __( 'Translating to %s in the background.', 'translate-with-ai-for-polylang' ),
+					'autoUpdate'    => __( 'This notice will update automatically.', 'translate-with-ai-for-polylang' ),
+					'editorWarning' => __( 'Avoid editing or publishing this draft until translation finishes. Edits made while the AI is working will discard its result.', 'translate-with-ai-for-polylang' ),
+					'done'          => __( 'AI translation complete', 'translate-with-ai-for-polylang' ),
+					'ready'         => __( 'Translation to %s is ready to review.', 'translate-with-ai-for-polylang' ),
+					'failedMessage' => __( 'Translation to %1$s failed: %2$s', 'translate-with-ai-for-polylang' ),
+					'failed'        => __( 'Translation failed', 'translate-with-ai-for-polylang' ),
+					'viewError'     => __( 'View error', 'translate-with-ai-for-polylang' ),
+					'openDraft'     => __( 'Open draft', 'translate-with-ai-for-polylang' ),
+					'retry'         => __( 'Retry translation', 'translate-with-ai-for-polylang' ),
+					'reloadEditor'  => __( 'Reload this editor to see the translated draft.', 'translate-with-ai-for-polylang' ),
+					'reload'        => __( 'Reload editor', 'translate-with-ai-for-polylang' ),
+					'pollError'     => __( 'Could not refresh translation status. Retrying…', 'translate-with-ai-for-polylang' ),
+					'statusError'   => __( 'Translation status is unavailable. Reload the page to check again.', 'translate-with-ai-for-polylang' ),
 				],
 			]
 		);
@@ -267,7 +267,7 @@ class Admin {
 		$post_id = isset( $_POST['post_id'] ) ? absint( wp_unslash( $_POST['post_id'] ) ) : 0;
 		if ( ! $post_id || ! current_user_can( 'edit_post', $post_id ) ) {
 			wp_send_json_error(
-				[ 'message' => __( 'You are not allowed to view this translation status.', 'ai-translator-for-polylang' ) ],
+				[ 'message' => __( 'You are not allowed to view this translation status.', 'translate-with-ai-for-polylang' ) ],
 				403
 			);
 		}
@@ -275,7 +275,7 @@ class Admin {
 		$state = $this->job->state( $post_id );
 		if ( ! $state ) {
 			wp_send_json_error(
-				[ 'message' => __( 'Translation status is unavailable.', 'ai-translator-for-polylang' ) ],
+				[ 'message' => __( 'Translation status is unavailable.', 'translate-with-ai-for-polylang' ) ],
 				404
 			);
 		}
@@ -297,7 +297,7 @@ class Admin {
 	 * Shows the current status after creating or retrying a translation.
 	 */
 	public function notices(): void {
-		$post_id = isset( $_GET['aitfp_queued'] ) ? absint( $_GET['aitfp_queued'] ) : 0; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Display only.
+		$post_id = isset( $_GET['twaifp_queued'] ) ? absint( $_GET['twaifp_queued'] ) : 0; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Display only.
 		if ( $post_id ) {
 			if ( current_user_can( 'edit_post', $post_id ) ) {
 				echo $this->status_notice( $post_id ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Escaped in status_notice().
@@ -321,10 +321,10 @@ class Admin {
 	private function redirect_to_list( string $post_type, int $post_id ): void {
 		$referer = wp_get_referer();
 		$back    = $referer && str_contains( $referer, '/wp-admin/edit.php' )
-			? remove_query_arg( 'aitfp_queued', $referer )
+			? remove_query_arg( 'twaifp_queued', $referer )
 			: admin_url( 'post' === $post_type ? 'edit.php' : 'edit.php?post_type=' . $post_type );
 
-		wp_safe_redirect( add_query_arg( 'aitfp_queued', $post_id, $back ) );
+		wp_safe_redirect( add_query_arg( 'twaifp_queued', $post_id, $back ) );
 		exit;
 	}
 
@@ -355,37 +355,37 @@ class Admin {
 			$message = esc_html(
 				sprintf(
 					/* translators: %s: Language name. */
-					__( 'Translation to %s is queued.', 'ai-translator-for-polylang' ),
+					__( 'Translation to %s is queued.', 'translate-with-ai-for-polylang' ),
 					$language
 				)
 			);
 			if ( $is_editor ) {
-				$message .= ' ' . esc_html__( 'Avoid editing or publishing this draft until translation finishes. Edits made while the AI is working will discard its result.', 'ai-translator-for-polylang' );
+				$message .= ' ' . esc_html__( 'Avoid editing or publishing this draft until translation finishes. Edits made while the AI is working will discard its result.', 'translate-with-ai-for-polylang' );
 			} else {
-				$message .= ' ' . esc_html__( 'This notice will update automatically.', 'ai-translator-for-polylang' );
+				$message .= ' ' . esc_html__( 'This notice will update automatically.', 'translate-with-ai-for-polylang' );
 			}
 		} elseif ( JobState::PROCESSING === $status ) {
 			$message = esc_html(
 				sprintf(
 					/* translators: %s: Language name. */
-					__( 'Translating to %s in the background.', 'ai-translator-for-polylang' ),
+					__( 'Translating to %s in the background.', 'translate-with-ai-for-polylang' ),
 					$language
 				)
 			);
 			if ( $is_editor ) {
-				$message .= ' ' . esc_html__( 'Avoid editing or publishing this draft until translation finishes. Edits made while the AI is working will discard its result.', 'ai-translator-for-polylang' );
+				$message .= ' ' . esc_html__( 'Avoid editing or publishing this draft until translation finishes. Edits made while the AI is working will discard its result.', 'translate-with-ai-for-polylang' );
 			} else {
-				$message .= ' ' . esc_html__( 'This notice will update automatically.', 'ai-translator-for-polylang' );
+				$message .= ' ' . esc_html__( 'This notice will update automatically.', 'translate-with-ai-for-polylang' );
 			}
 		} elseif ( JobState::DONE === $status ) {
 			$notice_class = 'notice-success';
 			if ( $is_editor ) {
-				$message = esc_html__( 'Translation is complete. Reload this editor to see the translated draft.', 'ai-translator-for-polylang' );
+				$message = esc_html__( 'Translation is complete. Reload this editor to see the translated draft.', 'translate-with-ai-for-polylang' );
 			} else {
 				$message = esc_html(
 					sprintf(
 						/* translators: %s: Language name. */
-						__( 'Translation to %s is ready to review.', 'ai-translator-for-polylang' ),
+						__( 'Translation to %s is ready to review.', 'translate-with-ai-for-polylang' ),
 						$language
 					)
 				);
@@ -394,7 +394,7 @@ class Admin {
 					$message .= ' ' . sprintf(
 						'<a href="%1$s">%2$s</a>',
 						esc_url( $edit_url ),
-						esc_html__( 'Open draft', 'ai-translator-for-polylang' )
+						esc_html__( 'Open draft', 'translate-with-ai-for-polylang' )
 					);
 				}
 			}
@@ -403,7 +403,7 @@ class Admin {
 			$message      = esc_html(
 				sprintf(
 					/* translators: 1: Language name, 2: Error message. */
-					__( 'Translation to %1$s failed: %2$s', 'ai-translator-for-polylang' ),
+					__( 'Translation to %1$s failed: %2$s', 'translate-with-ai-for-polylang' ),
 					$language,
 					$state->error
 				)
@@ -411,23 +411,23 @@ class Admin {
 			$message     .= ' ' . sprintf(
 				'<a href="%1$s">%2$s</a>',
 				esc_url( $this->retry_url( $post_id ) ),
-				esc_html__( 'Retry translation', 'ai-translator-for-polylang' )
+				esc_html__( 'Retry translation', 'translate-with-ai-for-polylang' )
 			);
 		} else {
 			$notice_class = 'notice-warning';
-			$message      = esc_html__( 'Translation status is unavailable. Check the post list for its current state.', 'ai-translator-for-polylang' );
+			$message      = esc_html__( 'Translation status is unavailable. Check the post list for its current state.', 'translate-with-ai-for-polylang' );
 		}
 
 		if ( $state && $state->is_stale() ) {
 			$message .= ' ' . sprintf(
 				'<a href="%1$s">%2$s</a>',
 				esc_url( $this->retry_url( $post_id ) ),
-				esc_html__( 'Retry translation', 'ai-translator-for-polylang' )
+				esc_html__( 'Retry translation', 'translate-with-ai-for-polylang' )
 			);
 		}
 
 		return sprintf(
-			'<div class="notice %1$s is-dismissible aitfp-status-notice" role="status" aria-live="polite" data-aitfp-status-notice data-aitfp-post-id="%2$d" data-aitfp-editor="%3$s"><p data-aitfp-status-message>%4$s</p></div>',
+			'<div class="notice %1$s is-dismissible twaifp-status-notice" role="status" aria-live="polite" data-twaifp-status-notice data-twaifp-post-id="%2$d" data-twaifp-editor="%3$s"><p data-twaifp-status-message>%4$s</p></div>',
 			esc_attr( $notice_class ),
 			$post_id,
 			$is_editor ? 'true' : 'false',
@@ -444,7 +444,7 @@ class Admin {
 	 */
 	private function post_state_markup( int $post_id, string $content ): string {
 		return sprintf(
-			'<span data-aitfp-post-state data-aitfp-post-id="%1$d">%2$s</span>',
+			'<span data-twaifp-post-state data-twaifp-post-id="%1$d">%2$s</span>',
 			$post_id,
 			$content
 		);

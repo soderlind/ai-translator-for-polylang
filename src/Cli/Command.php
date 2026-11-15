@@ -2,15 +2,15 @@
 /**
  * WP-CLI commands.
  *
- * @package AiTranslatorForPolylang
+ * @package TranslateWithAiForPolylang
  */
 
 declare(strict_types=1);
 
-namespace AiTranslatorForPolylang\Cli;
+namespace Soderlind\TranslateWithAiForPolylang\Cli;
 
-use AiTranslatorForPolylang\Creator;
-use AiTranslatorForPolylang\Translation\TranslationJob;
+use Soderlind\TranslateWithAiForPolylang\Creator;
+use Soderlind\TranslateWithAiForPolylang\Translation\TranslationJob;
 use WP_CLI;
 use WP_Post;
 
@@ -43,7 +43,7 @@ class Command {
 	 *
 	 * ## EXAMPLES
 	 *
-	 *     wp aitfp translate 42 --language=nb --user=admin
+	 *     wp twaifp translate 42 --language=nb --user=admin
 	 *
 	 * @param array<int,string>    $args       Positional arguments.
 	 * @param array<string,string> $assoc_args Associative arguments.
@@ -87,7 +87,7 @@ class Command {
 	 *
 	 * ## EXAMPLES
 	 *
-	 *     wp aitfp run 43
+	 *     wp twaifp run 43
 	 *
 	 * @param array<int,string>    $args       Positional arguments.
 	 * @param array<string,string> $assoc_args Associative arguments.

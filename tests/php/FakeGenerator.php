@@ -2,14 +2,14 @@
 /**
  * Scripted text generator for tests.
  *
- * @package AiTranslatorForPolylang\Tests
+ * @package TranslateWithAiForPolylang\Tests
  */
 
 declare(strict_types=1);
 
-namespace AiTranslatorForPolylang\Tests;
+namespace Soderlind\TranslateWithAiForPolylang\Tests;
 
-use AiTranslatorForPolylang\Translation\TextGenerator;
+use Soderlind\TranslateWithAiForPolylang\Translation\TextGenerator;
 use WP_Error;
 
 /**
