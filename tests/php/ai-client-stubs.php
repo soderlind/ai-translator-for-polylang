@@ -2,7 +2,7 @@
 /**
  * AI Client classes needed by unit tests (WordPress 7.0 is not a dev dependency).
  *
- * @package AiTranslatorForPolylang\Tests
+ * @package TranslateWithAiForPolylang\Tests
  */
 
 declare(strict_types=1);

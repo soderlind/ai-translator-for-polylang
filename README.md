@@ -1,4 +1,4 @@
-# AI Translator for Polylang
+# Translate with AI for Polylang
 
 Click Polylang's **Add a translation** (+) button and get a linked draft that the WordPress AI Client translates in the background.
 
@@ -40,13 +40,13 @@ If WordPress finds no usable AI provider for a request (it reports "No models fo
 
 ```bash
 # Create a Norwegian translation of post 42 and translate it now.
-wp aitfp translate 42 --language=nb --user=admin
+wp twaifp translate 42 --language=nb --user=admin
 
 # Create it, but let WP-Cron translate it.
-wp aitfp translate 42 --language=nb --user=admin --async
+wp twaifp translate 42 --language=nb --user=admin --async
 
 # Run (or re-run) the AI translation of translation post 43.
-wp aitfp run 43
+wp twaifp run 43
 ```
 
 `--user` is required by `translate` so it can check capabilities.
@@ -57,34 +57,44 @@ wp aitfp run 43
 
 | Filter | Arguments | Description |
 | --- | --- | --- |
-| `aitfp_prompt_builder` | `WP_AI_Client_Prompt_Builder $builder, string $field, array $language` | Change the prompt builder before a request is sent, for example to choose a provider or model. `$field` is `title`, `excerpt` or `content`. |
-| `aitfp_content_chunk_size` | `int $chunk_size` | Maximum characters of content per AI request. Default `6000`, minimum `500`. |
-| `aitfp_translatable_html_attributes` | `string[] $attributes` | HTML attributes whose values are translated. Default `alt`, `title`, `aria-label`, `placeholder`. |
-| `aitfp_translatable_block_attributes` | `string[] $keys` | Block attribute (JSON) keys whose string values are translated. Default `alt`, `caption`, `label`, `placeholder`, `title`, `buttonText`, `text`, `content`, `citation`. |
-| `aitfp_request_timeout` | `int $timeout` | AI request timeout in seconds. Default `180`. |
-| `aitfp_translated_post_data` | `array $data, WP_Post $post, array $language` | Change the post data before it goes to `wp_update_post()`. |
-| `aitfp_spawn_cron` | `bool $spawn, int $post_id` | Whether to start WP-Cron right after queuing. Default `true`, even when `DISABLE_WP_CRON` is set. |
+| `twaifp_prompt_builder` | `WP_AI_Client_Prompt_Builder $builder, string $field, array $language` | Change the prompt builder before a request is sent, for example to choose a provider or model. `$field` is `title`, `excerpt` or `content`. |
+| `twaifp_content_chunk_size` | `int $chunk_size` | Maximum characters of content per AI request. Default `6000`, minimum `500`. |
+| `twaifp_translatable_html_attributes` | `string[] $attributes` | HTML attributes whose values are translated. Default `alt`, `title`, `aria-label`, `placeholder`. |
+| `twaifp_translatable_block_attributes` | `string[] $keys` | Block attribute (JSON) keys whose string values are translated. Default `alt`, `caption`, `label`, `placeholder`, `title`, `buttonText`, `text`, `content`, `citation`. |
+| `twaifp_request_timeout` | `int $timeout` | AI request timeout in seconds. Default `180`. |
+| `twaifp_translated_post_data` | `array $data, WP_Post $post, array $language` | Change the post data before it goes to `wp_update_post()`. |
+| `twaifp_spawn_cron` | `bool $spawn, int $post_id` | Whether to start WP-Cron right after queuing. Default `true`, even when `DISABLE_WP_CRON` is set. |
 
 ### Actions
 
 | Action | Arguments | Description |
 | --- | --- | --- |
-| `aitfp_translated` | `int $post_id, array $language, int $source_id` | Fires after a post has been translated. |
-| `aitfp_translation_failed` | `int $post_id, WP_Error $error, array $language` | Fires when a translation fails. |
+| `twaifp_translated` | `int $post_id, array $language, int $source_id` | Fires after a post has been translated. |
+| `twaifp_translation_failed` | `int $post_id, WP_Error $error, array $language` | Fires when a translation fails. |
 
 `$language` is an array with `code` (Polylang slug), `name` and `locale`.
 
 ### Example: choose a model
 
 ```php
-add_filter( 'aitfp_prompt_builder', function ( $builder ) {
+add_filter( 'twaifp_prompt_builder', function ( $builder ) {
 	return $builder->using_model_preference( 'gpt-5-mini' );
 } );
 ```
 
+## Upgrading from AI Translator for Polylang
+
+This plugin was previously called AI Translator for Polylang (`ai-translator-for-polylang`, version 0.2.0 and earlier). It installs in a new folder and does not replace the old plugin.
+
+1. Wait until no post shows **Translating to {language}…**. This plugin cannot resume translations started by the old plugin.
+2. Deactivate and delete AI Translator for Polylang. If both plugins are active, both handle the + button.
+3. Install and activate Translate with AI for Polylang.
+
+If a draft was left unfinished, delete it permanently and click + again to create a new translation.
+
 ## Uninstall
 
-When you delete the plugin, it removes its post meta (`_aitfp_*`) and any scheduled `aitfp_translate_post` events, on every site in a multisite network. The translated posts stay.
+When you delete the plugin, it removes its post meta (`_twaifp_*`) and any scheduled `twaifp_translate_post` events, on every site in a multisite network. The translated posts stay.
 
 ## Development
 
@@ -110,7 +120,7 @@ to their built paths in `i18n-map.json` and add `--use-map=i18n-map.json` to the
 To run the end-to-end test (WP-CLI, admin requests and real AI requests) against a running site:
 
 ```bash
-AITFP_URL=https://example.test scripts/acceptance.sh
+TWAIFP_URL=https://example.test scripts/acceptance.sh
 ```
 
 See [docs/acceptance-test.md](docs/acceptance-test.md).

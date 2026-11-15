@@ -2,12 +2,12 @@
 /**
  * Translates post content without letting the translation touch its markup.
  *
- * @package AiTranslatorForPolylang
+ * @package TranslateWithAiForPolylang
  */
 
 declare(strict_types=1);
 
-namespace AiTranslatorForPolylang\Translation;
+namespace Soderlind\TranslateWithAiForPolylang\Translation;
 
 use WP_Error;
 use WP_HTML_Tag_Processor;
@@ -76,7 +76,7 @@ final class PostContent {
 	 * @param list<string>                                    $html_attributes    Translatable HTML attribute names.
 	 * @param list<string>                                    $block_attributes   Translatable block attribute keys.
 	 * @return string|WP_Error The translated content, the callback's error, or
-	 *                         aitfp_segment_mismatch when the callback twice fails
+	 *                         twaifp_segment_mismatch when the callback twice fails
 	 *                         to return one string per segment.
 	 */
 	public static function translate( string $html, callable $translate_segments, int $chunk_size, array $html_attributes = self::HTML_ATTRIBUTES, array $block_attributes = self::BLOCK_ATTRIBUTES ): string|WP_Error {
@@ -120,8 +120,8 @@ final class PostContent {
 		}
 
 		return new WP_Error(
-			'aitfp_segment_mismatch',
-			__( 'The AI response did not return one translation per text segment, so it was not saved.', 'ai-translator-for-polylang' )
+			'twaifp_segment_mismatch',
+			__( 'The AI response did not return one translation per text segment, so it was not saved.', 'translate-with-ai-for-polylang' )
 		);
 	}
 

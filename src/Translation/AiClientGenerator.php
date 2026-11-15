@@ -2,12 +2,12 @@
 /**
  * Text generator adapter for the WordPress AI Client.
  *
- * @package AiTranslatorForPolylang
+ * @package TranslateWithAiForPolylang
  */
 
 declare(strict_types=1);
 
-namespace AiTranslatorForPolylang\Translation;
+namespace Soderlind\TranslateWithAiForPolylang\Translation;
 
 use WordPress\AiClient\Providers\Http\DTO\RequestOptions;
 use WP_AI_Client_Prompt_Builder;
@@ -78,16 +78,16 @@ final class AiClientGenerator implements TextGenerator {
 	public function generate( string $prompt, string $instruction, string $field, array $language ): string|WP_Error {
 		if ( ! function_exists( 'wp_ai_client_prompt' ) ) {
 			return new WP_Error(
-				'aitfp_ai_client_missing',
-				__( 'The WordPress AI Client is not available. WordPress 7.0 or later is required.', 'ai-translator-for-polylang' )
+				'twaifp_ai_client_missing',
+				__( 'The WordPress AI Client is not available. WordPress 7.0 or later is required.', 'translate-with-ai-for-polylang' )
 			);
 		}
 
 		for ( $attempt = 1; ; $attempt++ ) {
 			if ( $this->before_request && false === ( $this->before_request )() ) {
 				return new WP_Error(
-					'aitfp_lock_lost',
-					__( 'Another worker took over this translation.', 'ai-translator-for-polylang' )
+					'twaifp_lock_lost',
+					__( 'Another worker took over this translation.', 'translate-with-ai-for-polylang' )
 				);
 			}
 
@@ -102,8 +102,8 @@ final class AiClientGenerator implements TextGenerator {
 
 			if ( $attempt >= self::PROVIDER_ATTEMPTS ) {
 				return new WP_Error(
-					'aitfp_provider_unavailable',
-					__( 'The AI provider could not be reached. Check Settings → Connectors and retry.', 'ai-translator-for-polylang' ),
+					'twaifp_provider_unavailable',
+					__( 'The AI provider could not be reached. Check Settings → Connectors and retry.', 'translate-with-ai-for-polylang' ),
 					[ 'original_message' => $result->get_error_message() ]
 				);
 			}
@@ -128,7 +128,7 @@ final class AiClientGenerator implements TextGenerator {
 		 *
 		 * @param int $timeout Timeout in seconds.
 		 */
-		$request_options->setTimeout( (float) apply_filters( 'aitfp_request_timeout', self::DEFAULT_TIMEOUT ) );
+		$request_options->setTimeout( (float) apply_filters( 'twaifp_request_timeout', self::DEFAULT_TIMEOUT ) );
 
 		$builder = wp_ai_client_prompt( $prompt )
 			->using_system_instruction( $instruction )
@@ -143,7 +143,7 @@ final class AiClientGenerator implements TextGenerator {
 		 * @param string                      $field    Field being translated: title, excerpt or content.
 		 * @param array<string,string>        $language Target language ( code, name, locale ).
 		 */
-		$builder = apply_filters( 'aitfp_prompt_builder', $builder, $field, $language );
+		$builder = apply_filters( 'twaifp_prompt_builder', $builder, $field, $language );
 
 		$result = $builder->generate_text();
 		if ( is_wp_error( $result ) ) {

@@ -1,17 +1,17 @@
 #!/usr/bin/env bash
-# End-to-end acceptance test for AI Translator for Polylang.
+# End-to-end acceptance test for Translate with AI for Polylang.
 # Uses real AI requests. Creates its own fixtures and removes them on exit.
 # See docs/acceptance-test.md.
 set -u
 
 PLUGIN_DIR=$(cd "$(dirname "$0")/.." && pwd)
-WP_PATH=${AITFP_WP_PATH:-$(cd "$PLUGIN_DIR/../../.." && pwd)}
-URL=${AITFP_URL:-http://plugins.local/translate}
-SRC_LANG=${AITFP_SOURCE_LANG:-en}
-TGT_LANG=${AITFP_TARGET_LANG:-nb}
-read -r -a WP_CMD <<<"${AITFP_WP:-wp}"
+WP_PATH=${TWAIFP_WP_PATH:-$(cd "$PLUGIN_DIR/../../.." && pwd)}
+URL=${TWAIFP_URL:-http://plugins.local/translate}
+SRC_LANG=${TWAIFP_SOURCE_LANG:-en}
+TGT_LANG=${TWAIFP_TARGET_LANG:-nb}
+read -r -a WP_CMD <<<"${TWAIFP_WP:-wp}"
 
-cd "$WP_PATH" || { echo "WordPress not found at $WP_PATH (set AITFP_WP_PATH)"; exit 1; }
+cd "$WP_PATH" || { echo "WordPress not found at $WP_PATH (set TWAIFP_WP_PATH)"; exit 1; }
 TMP=$(mktemp -d)
 
 wpc() {
@@ -28,10 +28,10 @@ wpc() {
 	rm -f "$err"
 }
 
-AT_USER=${AITFP_USER:-$(wpc user list --role=administrator --field=user_login --number=1 | tail -1)}
+AT_USER=${TWAIFP_USER:-$(wpc user list --role=administrator --field=user_login --number=1 | tail -1)}
 AT_UID=$(wpc user get "$AT_USER" --field=ID | tail -1)
-case "$AT_UID" in ''|*[!0-9]*) echo "Could not resolve admin user '$AT_USER' (set AITFP_USER)"; exit 1;; esac
-export AITFP_AT_SRC=$SRC_LANG AITFP_AT_TGT=$TGT_LANG AITFP_AT_UID=$AT_UID
+case "$AT_UID" in ''|*[!0-9]*) echo "Could not resolve admin user '$AT_USER' (set TWAIFP_USER)"; exit 1;; esac
+export TWAIFP_AT_SRC=$SRC_LANG TWAIFP_AT_TGT=$TGT_LANG TWAIFP_AT_UID=$AT_UID
 ev() { wpc eval "$1" --user="$AT_USER"; }
 
 echo "Site: $URL  user: $AT_USER  languages: $SRC_LANG -> $TGT_LANG"
@@ -46,9 +46,9 @@ LOG_START=$( [ -f $LOG ] && wc -c <$LOG || echo 0 )
 
 echo "== Fixtures"
 FIX=$(ev '
-$cat_en = wp_insert_term("AITFP AT Garden", "category"); $cat_nb = wp_insert_term("AITFP AT Hage", "category");
-pll_set_term_language($cat_en["term_id"], getenv("AITFP_AT_SRC")); pll_set_term_language($cat_nb["term_id"], getenv("AITFP_AT_TGT"));
-pll_save_term_translations([getenv("AITFP_AT_SRC") => $cat_en["term_id"], getenv("AITFP_AT_TGT") => $cat_nb["term_id"]]);
+$cat_en = wp_insert_term("TWAIFP AT Garden", "category"); $cat_nb = wp_insert_term("TWAIFP AT Hage", "category");
+pll_set_term_language($cat_en["term_id"], getenv("TWAIFP_AT_SRC")); pll_set_term_language($cat_nb["term_id"], getenv("TWAIFP_AT_TGT"));
+pll_save_term_translations([getenv("TWAIFP_AT_SRC") => $cat_en["term_id"], getenv("TWAIFP_AT_TGT") => $cat_nb["term_id"]]);
 $content = <<<HTML
 <!-- wp:heading -->
 <h2 class="wp-block-heading">Planting tomatoes</h2>
@@ -88,8 +88,8 @@ $content = <<<HTML
 HTML;
 $ids = [];
 foreach (["A" => "Growing tomatoes in pots", "B" => "Composting for beginners", "C" => "Pruning roses in spring", "D" => "Saving seeds", "E" => "Mulching basics"] as $k => $title) {
-	$id = wp_insert_post(wp_slash(["post_title" => "AITFP AT $title", "post_excerpt" => "A short guide about $title.", "post_content" => $content, "post_status" => "publish", "post_category" => [$cat_en["term_id"]]]));
-	pll_set_post_language($id, getenv("AITFP_AT_SRC"));
+	$id = wp_insert_post(wp_slash(["post_title" => "TWAIFP AT $title", "post_excerpt" => "A short guide about $title.", "post_content" => $content, "post_status" => "publish", "post_category" => [$cat_en["term_id"]]]));
+	pll_set_post_language($id, getenv("TWAIFP_AT_SRC"));
 	$ids[] = "$k=$id";
 }
 echo implode(" ", $ids), " CATEN=", $cat_en["term_id"], " CATNB=", $cat_nb["term_id"];
@@ -111,9 +111,9 @@ trap cleanup EXIT
 
 # Helper: dump job state of a post as key=value lines.
 state() {
-	ev "\$p = get_post($1); \$src = (int) get_post_meta($1, '_aitfp_source', true);
-	echo 'status=', get_post_meta($1, '_aitfp_status', true), PHP_EOL;
-	echo 'error=', get_post_meta($1, '_aitfp_error', true), PHP_EOL;
+	ev "\$p = get_post($1); \$src = (int) get_post_meta($1, '_twaifp_source', true);
+	echo 'status=', get_post_meta($1, '_twaifp_status', true), PHP_EOL;
+	echo 'error=', get_post_meta($1, '_twaifp_error', true), PHP_EOL;
 	echo 'post_status=', \$p ? \$p->post_status : '', PHP_EOL;
 	echo 'lang=', pll_get_post_language($1), PHP_EOL;
 	echo 'linked=', \$src && pll_get_post(\$src, '$TGT_LANG') === $1 ? 1 : 0, PHP_EOL;
@@ -127,17 +127,17 @@ state() {
 	echo 'urls_kept=', str_contains(\$p->post_content, 'https://example.com/soil') && str_contains(\$p->post_content, 'https://example.com/tomato.jpg') && str_contains(\$p->post_content, '[gallery ids=\"1,2\"]') ? 1 : 0, PHP_EOL;
 	echo 'parses=', count(array_filter(parse_blocks(\$p->post_content), fn(\$b) => \$b['blockName'])), PHP_EOL;
 	echo 'cats=', implode(',', wp_get_post_categories($1)), PHP_EOL;
-	echo 'cron=', wp_next_scheduled('aitfp_translate_post', [$1]) ? 1 : 0, PHP_EOL;"
+	echo 'cron=', wp_next_scheduled('twaifp_translate_post', [$1]) ? 1 : 0, PHP_EOL;"
 }
 get() { grep "^$1=" <<<"$2" | head -1 | cut -d= -f2-; }
 wait_done() { # $1 post id, $2 seconds
 	local s
-	for _ in $(seq 1 "$2"); do s=$(ev "echo get_post_meta($1, '_aitfp_status', true);"); [ "$s" = done ] || [ "$s" = failed ] && break; sleep 1; done
+	for _ in $(seq 1 "$2"); do s=$(ev "echo get_post_meta($1, '_twaifp_status', true);"); [ "$s" = done ] || [ "$s" = failed ] && break; sleep 1; done
 	echo "$s"
 }
 
-echo "== 1. wp aitfp translate (synchronous)"
-OUT=$(wpc aitfp translate "$A" --language="$TGT_LANG" --user="$AT_USER")
+echo "== 1. wp twaifp translate (synchronous)"
+OUT=$(wpc twaifp translate "$A" --language="$TGT_LANG" --user="$AT_USER")
 has "translate reports success" "$OUT" "Success: Translated post"
 T1=$(ev "echo pll_get_post($A, '$TGT_LANG');")
 S=$(state "$T1")
@@ -156,82 +156,82 @@ check "category swapped to target term"   "$(get cats "$S")" "$CATNB"
 check "no cron event left"            "$(get cron "$S")" 0
 echo "        title: $(get title "$S")  slug: $(get slug "$S")"
 
-echo "== 2. wp aitfp translate errors"
-OUT=$(wpc aitfp translate "$A" --language="$TGT_LANG" --user="$AT_USER");  has "already translated"        "$OUT" "already translated into every language"
-OUT=$(wpc aitfp translate "$B" --language=xx --user="$AT_USER");  has "unknown language lists target" "$OUT" "Choose one of: $TGT_LANG"
-OUT=$(wpc aitfp translate "$B" --language="$TGT_LANG");             has "requires --user"           "$OUT" "Pass --user=<admin>"
-OUT=$(wpc aitfp translate 99999999 --language="$TGT_LANG" --user="$AT_USER"); has "missing post"           "$OUT" "Post not found"
-OUT=$(wpc aitfp run "$A" --user="$AT_USER");                       has "run on non-job post"      "$OUT" "Nothing to translate"
+echo "== 2. wp twaifp translate errors"
+OUT=$(wpc twaifp translate "$A" --language="$TGT_LANG" --user="$AT_USER");  has "already translated"        "$OUT" "already translated into every language"
+OUT=$(wpc twaifp translate "$B" --language=xx --user="$AT_USER");  has "unknown language lists target" "$OUT" "Choose one of: $TGT_LANG"
+OUT=$(wpc twaifp translate "$B" --language="$TGT_LANG");             has "requires --user"           "$OUT" "Pass --user=<admin>"
+OUT=$(wpc twaifp translate 99999999 --language="$TGT_LANG" --user="$AT_USER"); has "missing post"           "$OUT" "Post not found"
+OUT=$(wpc twaifp run "$A" --user="$AT_USER");                       has "run on non-job post"      "$OUT" "Nothing to translate"
 check "no translation created by failed calls" "$(ev "echo pll_get_post($B, '$TGT_LANG') ?: 0;")" 0
 
-echo "== 3. wp aitfp translate --async (spawn_cron while DISABLE_WP_CRON)"
-OUT=$(wpc aitfp translate "$B" --language="$TGT_LANG" --user="$AT_USER" --async)
+echo "== 3. wp twaifp translate --async (spawn_cron while DISABLE_WP_CRON)"
+OUT=$(wpc twaifp translate "$B" --language="$TGT_LANG" --user="$AT_USER" --async)
 has "async reports queued" "$OUT" "queued AI translation to"
 T2=$(ev "echo pll_get_post($B, '$TGT_LANG');")
 check "draft linked immediately" "$( [ -n "$T2" ] && [ "$T2" != 0 ] && echo 1)" 1
 ST=$(wait_done "$T2" 120)
 if [ "$ST" = done ]; then ok "spawned cron finished the job"; else
 	bad "spawned cron finished the job" "status [$ST] after 120s; running cron manually"
-	wpc cron event run aitfp_translate_post >/dev/null
+	wpc cron event run twaifp_translate_post >/dev/null
 fi
 S=$(state "$T2")
 check "async status done"            "$(get status "$S")" done
 check "async block structure kept"   "$(get blocks_equal "$S")" 1
 check "async content translated"     "$(get content_changed "$S")" 1
 
-echo "== 4. wp aitfp run (re-run)"
-OUT=$(wpc aitfp run "$T1" --user="$AT_USER")
+echo "== 4. wp twaifp run (re-run)"
+OUT=$(wpc twaifp run "$T1" --user="$AT_USER")
 has "re-run succeeds" "$OUT" "Success: Translated post $T1"
-check "re-run status done" "$(ev "echo get_post_meta($T1, '_aitfp_status', true);")" done
+check "re-run status done" "$(ev "echo get_post_meta($T1, '_twaifp_status', true);")" done
 
 echo "== 5. Worker lock"
-LOCKQ() { ev "global \$wpdb; echo \$wpdb->get_var(\$wpdb->prepare(\"SELECT COUNT(*) FROM {\$wpdb->options} WHERE option_name LIKE %s\", '_aitfp_lock_%'));"; }
+LOCKQ() { ev "global \$wpdb; echo \$wpdb->get_var(\$wpdb->prepare(\"SELECT COUNT(*) FROM {\$wpdb->options} WHERE option_name LIKE %s\", '_twaifp_lock_%'));"; }
 check "no lock rows left after runs" "$(LOCKQ)" 0
-setlock() { ev "global \$wpdb; \$wpdb->replace(\$wpdb->options, ['option_name' => '_aitfp_lock_$T1', 'option_value' => 'other|' . (time() - $2), 'autoload' => 'off']);" >/dev/null; }
+setlock() { ev "global \$wpdb; \$wpdb->replace(\$wpdb->options, ['option_name' => '_twaifp_lock_$T1', 'option_value' => 'other|' . (time() - $2), 'autoload' => 'off']);" >/dev/null; }
 setlock "$T1" 0
 BEFORE=$(ev "echo get_post($T1)->post_modified_gmt;")
-OUT=$(wpc aitfp run "$T1" --user="$AT_USER")
+OUT=$(wpc twaifp run "$T1" --user="$AT_USER")
 has "held lock blocks a second worker" "$OUT" "already being translated"
 check "blocked worker changed nothing" "$(ev "echo get_post($T1)->post_modified_gmt;")" "$BEFORE"
 setlock "$T1" 1000
-OUT=$(wpc aitfp run "$T1" --user="$AT_USER")
+OUT=$(wpc twaifp run "$T1" --user="$AT_USER")
 has "stale lock is taken over" "$OUT" "Success: Translated post $T1"
 check "lock released after takeover" "$(LOCKQ)" 0
 cat >"$TMP/steal-lock.php" <<'PHP'
 <?php
-WP_CLI::add_wp_hook( 'aitfp_prompt_builder', static function ( $builder, $field ) {
+WP_CLI::add_wp_hook( 'twaifp_prompt_builder', static function ( $builder, $field ) {
 	global $wpdb;
 	if ( 'content' === $field ) {
-		$wpdb->update( $wpdb->options, [ 'option_value' => 'other|' . time() ], [ 'option_name' => '_aitfp_lock_' . (int) getenv( 'AT_POST' ) ] );
+		$wpdb->update( $wpdb->options, [ 'option_value' => 'other|' . time() ], [ 'option_name' => '_twaifp_lock_' . (int) getenv( 'AT_POST' ) ] );
 	}
 	return $builder;
 }, 10, 2 );
 PHP
 BEFORE=$(ev "echo get_post($T1)->post_modified_gmt;")
-OUT=$(AT_POST=$T1 wpc aitfp run "$T1" --user="$AT_USER" --require="$TMP/steal-lock.php")
+OUT=$(AT_POST=$T1 wpc twaifp run "$T1" --user="$AT_USER" --require="$TMP/steal-lock.php")
 has "worker that lost its lock stops" "$OUT" "Another worker took over"
 check "worker that lost its lock did not save" "$(ev "echo get_post($T1)->post_modified_gmt;")" "$BEFORE"
 check "new owner's lock left in place" "$(LOCKQ)" 1
-ev "global \$wpdb; \$wpdb->delete(\$wpdb->options, ['option_name' => '_aitfp_lock_$T1']);" >/dev/null
+ev "global \$wpdb; \$wpdb->delete(\$wpdb->options, ['option_name' => '_twaifp_lock_$T1']);" >/dev/null
 cat >"$TMP/log-schedule.php" <<'PHP'
 <?php
 WP_CLI::add_wp_hook( 'schedule_event', static function ( $event ) {
-	if ( $event && 'aitfp_translate_post' === $event->hook ) {
+	if ( $event && 'twaifp_translate_post' === $event->hook ) {
 		file_put_contents( getenv( 'AT_LOG' ), 'scheduled' );
 	}
 	return $event;
 } );
 PHP
 : >"$TMP/schedule.log"
-AT_LOG="$TMP/schedule.log" wpc aitfp translate "$D" --language="$TGT_LANG" --user="$AT_USER" --require="$TMP/log-schedule.php" >/dev/null
+AT_LOG="$TMP/schedule.log" wpc twaifp translate "$D" --language="$TGT_LANG" --user="$AT_USER" --require="$TMP/log-schedule.php" >/dev/null
 check "synchronous translate never schedules cron" "$(cat "$TMP/schedule.log")" ""
-check "synchronous translate finished" "$(ev "echo get_post_meta(pll_get_post($D, '$TGT_LANG'), '_aitfp_status', true);")" done
+check "synchronous translate finished" "$(ev "echo get_post_meta(pll_get_post($D, '$TGT_LANG'), '_twaifp_status', true);")" done
 ev "wp_delete_post(pll_get_post($D, '$TGT_LANG'), true);" >/dev/null
 
 echo "== 6. Edit during translation is not overwritten"
 cat >"$TMP/edit-midway.php" <<'PHP'
 <?php
-WP_CLI::add_wp_hook( 'aitfp_prompt_builder', static function ( $builder, $field ) {
+WP_CLI::add_wp_hook( 'twaifp_prompt_builder', static function ( $builder, $field ) {
 	static $done = false;
 	if ( 'content' === $field && ! $done ) {
 		$done = true;
@@ -242,7 +242,7 @@ WP_CLI::add_wp_hook( 'aitfp_prompt_builder', static function ( $builder, $field 
 	return $builder;
 }, 10, 2 );
 PHP
-OUT=$(AT_POST=$T1 wpc aitfp run "$T1" --user="$AT_USER" --require="$TMP/edit-midway.php")
+OUT=$(AT_POST=$T1 wpc twaifp run "$T1" --user="$AT_USER" --require="$TMP/edit-midway.php")
 has "run reports edit conflict" "$OUT" "edited while it was being translated"
 S=$(state "$T1")
 check "status failed"            "$(get status "$S")" failed
@@ -253,31 +253,31 @@ echo "== 7. Admin: post states and row actions"
 OUT=$(ev "\$p = get_post($T1); echo implode('|', apply_filters('display_post_states', [], \$p)), PHP_EOL, implode('|', array_keys(apply_filters('post_row_actions', [], \$p)));")
 has "failed state label"     "$OUT" "Translation failed"
 has "failed state exposes the error" "$OUT" "edited while it was being translated"
-has "retry row action"       "$OUT" "aitfp_retry"
-check "no retry on source post" "$(ev "echo (int) isset(apply_filters('post_row_actions', [], get_post($A))['aitfp_retry']);")" 0
+has "retry row action"       "$OUT" "twaifp_retry"
+check "no retry on source post" "$(ev "echo (int) isset(apply_filters('post_row_actions', [], get_post($A))['twaifp_retry']);")" 0
 
 echo "== 8. Admin HTTP flow (+ link, notice, retry, nonce checks)"
 AUTH=$(ev '
-$exp = time() + HOUR_IN_SECONDS; $token = WP_Session_Tokens::get_instance((int) getenv("AITFP_AT_UID"))->create($exp);
-$logged = wp_generate_auth_cookie((int) getenv("AITFP_AT_UID"), $exp, "logged_in", $token); $secure = str_starts_with(admin_url(), "https:"); $auth = wp_generate_auth_cookie((int) getenv("AITFP_AT_UID"), $exp, $secure ? "secure_auth" : "auth", $token);
+$exp = time() + HOUR_IN_SECONDS; $token = WP_Session_Tokens::get_instance((int) getenv("TWAIFP_AT_UID"))->create($exp);
+$logged = wp_generate_auth_cookie((int) getenv("TWAIFP_AT_UID"), $exp, "logged_in", $token); $secure = str_starts_with(admin_url(), "https:"); $auth = wp_generate_auth_cookie((int) getenv("TWAIFP_AT_UID"), $exp, $secure ? "secure_auth" : "auth", $token);
 echo "TOKEN=", $token, PHP_EOL, "LOGGED=\"", $logged, "\"", PHP_EOL, "COOKIE=\"", $secure ? SECURE_AUTH_COOKIE : AUTH_COOKIE, "=", rawurlencode($auth), "; ", LOGGED_IN_COOKIE, "=", rawurlencode($logged), "\"", PHP_EOL;
-$_COOKIE[LOGGED_IN_COOKIE] = $logged; wp_set_current_user((int) getenv("AITFP_AT_UID"));
-$lang = PLL()->model->get_language(getenv("AITFP_AT_TGT"));
-foreach (["C" => '"$C"', "D" => '"$D"'] as $k => $id) { echo "PLUS_$k=\"", apply_filters("pll_get_new_post_translation_link", admin_url("post-new.php?from_post=$id&new_lang=" . getenv("AITFP_AT_TGT")), $lang, $id), "\"", PHP_EOL; }
-echo "PLUS_BADNONCE=\"", admin_url("admin.php?action=aitfp_translate&post='"$E"'&language=" . getenv("AITFP_AT_TGT") . "&_wpnonce=deadbeef"), "\"", PHP_EOL;
+$_COOKIE[LOGGED_IN_COOKIE] = $logged; wp_set_current_user((int) getenv("TWAIFP_AT_UID"));
+$lang = PLL()->model->get_language(getenv("TWAIFP_AT_TGT"));
+foreach (["C" => '"$C"', "D" => '"$D"'] as $k => $id) { echo "PLUS_$k=\"", apply_filters("pll_get_new_post_translation_link", admin_url("post-new.php?from_post=$id&new_lang=" . getenv("TWAIFP_AT_TGT")), $lang, $id), "\"", PHP_EOL; }
+echo "PLUS_BADNONCE=\"", admin_url("admin.php?action=twaifp_translate&post='"$E"'&language=" . getenv("TWAIFP_AT_TGT") . "&_wpnonce=deadbeef"), "\"", PHP_EOL;
 ')
 eval "$AUTH"
 export TOKEN
-has "+ link points at aitfp_translate" "$PLUS_C" "action=aitfp_translate"
+has "+ link points at twaifp_translate" "$PLUS_C" "action=twaifp_translate"
 REF="$URL/wp-admin/edit.php"
 curlc() { curl -sk -o "$TMP/body" -w '%{http_code} %{redirect_url}' -H "Cookie: $COOKIE" -e "$REF" "$@"; }
 
 R=$(curlc "$PLUS_C")
-has "+ click redirects to post list" "$R" "302 $URL/wp-admin/edit.php?aitfp_queued="
-T3=${R##*aitfp_queued=}
+has "+ click redirects to post list" "$R" "302 $URL/wp-admin/edit.php?twaifp_queued="
+T3=${R##*twaifp_queued=}
 check "+ created linked target draft" "$(ev "echo pll_get_post($C, '$TGT_LANG');")" "$T3"
 
-curl -sk -o "$TMP/list" -H "Cookie: $COOKIE" "$URL/wp-admin/edit.php?aitfp_queued=$T3&lang=all"
+curl -sk -o "$TMP/list" -H "Cookie: $COOKIE" "$URL/wp-admin/edit.php?twaifp_queued=$T3&lang=all"
 if grep -qF "Translation to $NBNAME is queued" "$TMP/list" \
 	|| grep -qF "Translating to $NBNAME in the background" "$TMP/list" \
 	|| grep -qF "ready to review" "$TMP/list"; then
@@ -292,13 +292,13 @@ S=$(state "$T3")
 check "admin job blocks preserved"   "$(get blocks_equal "$S")" 1
 check "admin job category swapped"   "$(get cats "$S")" "$CATNB"
 has "completed state shown" "$(ev "echo implode('|', apply_filters('display_post_states', [], get_post($T3)));")" "AI translation complete"
-curl -sk -o "$TMP/list" -H "Cookie: $COOKIE" "$URL/wp-admin/edit.php?aitfp_queued=$T3&lang=all"
+curl -sk -o "$TMP/list" -H "Cookie: $COOKIE" "$URL/wp-admin/edit.php?twaifp_queued=$T3&lang=all"
 has "completed notice links to draft" "$(cat "$TMP/list")" "ready to review"
-STATUS_NONCE=$(ev "\$_COOKIE[LOGGED_IN_COOKIE] = '$LOGGED'; wp_set_current_user($AT_UID); echo wp_create_nonce('aitfp_translation_status');")
-STATUS_HTTP=$(curl -sk -o "$TMP/status" -w '%{http_code}' -H "Cookie: $COOKIE" -d "action=aitfp_translation_status&post_id=$T3&nonce=$STATUS_NONCE" "$URL/wp-admin/admin-ajax.php")
+STATUS_NONCE=$(ev "\$_COOKIE[LOGGED_IN_COOKIE] = '$LOGGED'; wp_set_current_user($AT_UID); echo wp_create_nonce('twaifp_translation_status');")
+STATUS_HTTP=$(curl -sk -o "$TMP/status" -w '%{http_code}' -H "Cookie: $COOKIE" -d "action=twaifp_translation_status&post_id=$T3&nonce=$STATUS_NONCE" "$URL/wp-admin/admin-ajax.php")
 check "status endpoint responds" "$STATUS_HTTP" 200
 has "status endpoint reports completion" "$(cat "$TMP/status")" '"status":"done"'
-STATUS_HTTP=$(curl -sk -o "$TMP/status" -w '%{http_code}' -H "Cookie: $COOKIE" -d "action=aitfp_translation_status&post_id=$T3&nonce=deadbeef" "$URL/wp-admin/admin-ajax.php")
+STATUS_HTTP=$(curl -sk -o "$TMP/status" -w '%{http_code}' -H "Cookie: $COOKIE" -d "action=twaifp_translation_status&post_id=$T3&nonce=deadbeef" "$URL/wp-admin/admin-ajax.php")
 check "status endpoint rejects bad nonce" "$STATUS_HTTP" 403
 
 R=$(curlc "$PLUS_C")
@@ -310,12 +310,12 @@ R=$(curl -sk -o /dev/null -w '%{http_code} %{redirect_url}' "$PLUS_D")
 has "logged-out request bounced to login" "$R" "wp-login.php"
 check "logged-out request created nothing" "$(ev "echo pll_get_post($D, '$TGT_LANG') ?: 0;")" 0
 
-RETRY=$(ev "\$_COOKIE[LOGGED_IN_COOKIE] = '$LOGGED'; wp_set_current_user($AT_UID); echo html_entity_decode(wp_nonce_url(admin_url('admin.php?action=aitfp_retry&post=$T1'), 'aitfp_retry_$T1'));")
+RETRY=$(ev "\$_COOKIE[LOGGED_IN_COOKIE] = '$LOGGED'; wp_set_current_user($AT_UID); echo html_entity_decode(wp_nonce_url(admin_url('admin.php?action=twaifp_retry&post=$T1'), 'twaifp_retry_$T1'));")
 curl -sk -o "$TMP/list" -H "Cookie: $COOKIE" "$URL/wp-admin/edit.php?lang=all&post_status=draft"
 has "post list shows failed label" "$(cat "$TMP/list")" "Translation failed"
-if grep -qE "action=aitfp_retry(&amp;|&#038;|&)post=$T1&" "$TMP/list"; then ok "post list shows retry link"; else bad "post list shows retry link" "$(grep -o 'aitfp_retry[^"]*' "$TMP/list" | head -3)"; fi
+if grep -qE "action=twaifp_retry(&amp;|&#038;|&)post=$T1&" "$TMP/list"; then ok "post list shows retry link"; else bad "post list shows retry link" "$(grep -o 'twaifp_retry[^"]*' "$TMP/list" | head -3)"; fi
 R=$(curlc "$RETRY")
-has "retry redirects to post list" "$R" "302 $URL/wp-admin/edit.php?aitfp_queued=$T1"
+has "retry redirects to post list" "$R" "302 $URL/wp-admin/edit.php?twaifp_queued=$T1"
 ST=$(wait_done "$T1" 120)
 check "retried job done" "$ST" done
 S=$(state "$T1")
@@ -327,25 +327,25 @@ has "retry refused once done" "$R" "403"
 echo "== 9. Deleting a queued translation unschedules it"
 cat >"$TMP/no-spawn.php" <<'PHP'
 <?php
-WP_CLI::add_wp_hook( 'aitfp_spawn_cron', '__return_false' );
+WP_CLI::add_wp_hook( 'twaifp_spawn_cron', '__return_false' );
 PHP
-wpc aitfp translate "$E" --language="$TGT_LANG" --user="$AT_USER" --async --require="$TMP/no-spawn.php" >/dev/null
+wpc twaifp translate "$E" --language="$TGT_LANG" --user="$AT_USER" --async --require="$TMP/no-spawn.php" >/dev/null
 T5=$(ev "echo pll_get_post($E, '$TGT_LANG');")
-check "event scheduled" "$(ev "echo wp_next_scheduled('aitfp_translate_post', [$T5]) ? 1 : 0;")" 1
-ev "wp_clear_scheduled_hook('aitfp_translate_post', [$T5]); wp_schedule_single_event(time() + 300, 'aitfp_translate_post', [$T5]);" >/dev/null
-check "deletion fixture event scheduled in future" "$(ev "echo wp_next_scheduled('aitfp_translate_post', [$T5]) > time() ? 1 : 0;")" 1
-check "status pending"  "$(ev "echo get_post_meta($T5, '_aitfp_status', true);")" pending
+check "event scheduled" "$(ev "echo wp_next_scheduled('twaifp_translate_post', [$T5]) ? 1 : 0;")" 1
+ev "wp_clear_scheduled_hook('twaifp_translate_post', [$T5]); wp_schedule_single_event(time() + 300, 'twaifp_translate_post', [$T5]);" >/dev/null
+check "deletion fixture event scheduled in future" "$(ev "echo wp_next_scheduled('twaifp_translate_post', [$T5]) > time() ? 1 : 0;")" 1
+check "status pending"  "$(ev "echo get_post_meta($T5, '_twaifp_status', true);")" pending
 curl -sk -o "$TMP/editor" -H "Cookie: $COOKIE" "$URL/wp-admin/post.php?post=$T5&action=edit"
 has "editor warns while translation is pending" "$(cat "$TMP/editor")" "Avoid editing or publishing this draft"
-STATUS_NONCE=$(ev "\$_COOKIE[LOGGED_IN_COOKIE] = '$LOGGED'; wp_set_current_user($AT_UID); echo wp_create_nonce('aitfp_translation_status');")
-STATUS_HTTP=$(curl -sk -o "$TMP/status" -w '%{http_code}' -H "Cookie: $COOKIE" -d "action=aitfp_translation_status&post_id=$T5&nonce=$STATUS_NONCE" "$URL/wp-admin/admin-ajax.php")
+STATUS_NONCE=$(ev "\$_COOKIE[LOGGED_IN_COOKIE] = '$LOGGED'; wp_set_current_user($AT_UID); echo wp_create_nonce('twaifp_translation_status');")
+STATUS_HTTP=$(curl -sk -o "$TMP/status" -w '%{http_code}' -H "Cookie: $COOKIE" -d "action=twaifp_translation_status&post_id=$T5&nonce=$STATUS_NONCE" "$URL/wp-admin/admin-ajax.php")
 check "pending status endpoint responds" "$STATUS_HTTP" 200
 has "status endpoint reports queued job" "$(cat "$TMP/status")" '"status":"pending"'
 ev "wp_delete_post($T5, true);" >/dev/null
-check "event removed on delete" "$(ev "echo wp_next_scheduled('aitfp_translate_post', [$T5]) ? 1 : 0;")" 0
+check "event removed on delete" "$(ev "echo wp_next_scheduled('twaifp_translate_post', [$T5]) ? 1 : 0;")" 0
 
 echo "== 10. PHP log"
-NEW=$( [ -f $LOG ] && tail -c +$((LOG_START+1)) $LOG | grep -iE 'ai-translator-for-polylang|aitfp' || true)
+NEW=$( [ -f $LOG ] && tail -c +$((LOG_START+1)) $LOG | grep -iE 'translate-with-ai-for-polylang|twaifp' || true)
 if [ -z "$NEW" ]; then ok "no PHP notices/errors from the plugin"; else bad "no PHP notices/errors from the plugin" "$NEW"; fi
 
 echo

@@ -2,14 +2,14 @@
 /**
  * Tests for PostContent.
  *
- * @package AiTranslatorForPolylang\Tests
+ * @package TranslateWithAiForPolylang\Tests
  */
 
 declare(strict_types=1);
 
-namespace AiTranslatorForPolylang\Tests;
+namespace Soderlind\TranslateWithAiForPolylang\Tests;
 
-use AiTranslatorForPolylang\Translation\PostContent;
+use Soderlind\TranslateWithAiForPolylang\Translation\PostContent;
 use WP_Error;
 
 final class PostContentTest extends TestCase {
@@ -155,13 +155,13 @@ final class PostContentTest extends TestCase {
 			);
 
 			$this->assertInstanceOf( WP_Error::class, $result );
-			$this->assertSame( 'aitfp_segment_mismatch', $result->get_error_code() );
+			$this->assertSame( 'twaifp_segment_mismatch', $result->get_error_code() );
 			$this->assertSame( 2, $calls );
 		}
 	}
 
 	public function test_returns_the_callback_error(): void {
-		$error = new WP_Error( 'aitfp_provider_unavailable', 'Down.' );
+		$error = new WP_Error( 'twaifp_provider_unavailable', 'Down.' );
 
 		$this->assertSame( $error, PostContent::translate( '<p>Hello</p>', static fn() => $error, 6000 ) );
 	}

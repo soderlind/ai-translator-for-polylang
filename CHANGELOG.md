@@ -6,12 +6,20 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [1.0.0] - 2026-11-15
+
+### Changed
+
+- Renamed the plugin to "Translate with AI for Polylang" (slug and text domain `translate-with-ai-for-polylang`), because the old slug is already taken on WordPress.org.
+- The main plugin file is now `translate-with-ai-for-polylang.php`, and the PHP namespace is `Soderlind\TranslateWithAiForPolylang`.
+- The prefix for hooks, post meta, options, constants and the WP-CLI command changed from `aitfp` to `twaifp` (`wp twaifp`). Translation status saved by earlier versions is not carried over.
+
 ## [0.2.0] - 2026-11-12
 
 ### Changed
 
 - The AI now gets only the text of the content, never the markup. The WordPress HTML API pulls out text nodes, `alt`, `title`, `aria-label` and `placeholder` values, and text in block attributes, then writes the translations back into the original markup.
-- New filters `aitfp_translatable_html_attributes` and `aitfp_translatable_block_attributes` choose which attributes are translated.
+- New filters `twaifp_translatable_html_attributes` and `twaifp_translatable_block_attributes` choose which attributes are translated.
 - Text inside `<code>`, `<kbd>` and `<samp>` is no longer translated. Text in `<textarea>` and `<title>` now is.
 - A translation that has stopped responding shows a retry link in the notice.
 
@@ -53,17 +61,18 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Title, excerpt and content are translated in the background with WP-Cron. WP-Cron starts right away, even when `DISABLE_WP_CRON` is set.
 - Content is sent in chunks that only split between blocks. Each result's block delimiters, HTML tags and block JSON are checked, and a damaged result is retried once.
 - Only one worker translates a post at a time. A per-post lock with a heartbeat is refreshed before every AI request, and a worker that loses its lock does not save.
-- Synchronous `wp aitfp translate` runs in the foreground only and never schedules a cron event.
+- Synchronous `wp twaifp translate` runs in the foreground only and never schedules a cron event.
 - An AI result is not saved if the draft was edited during translation.
 - The post list shows **Translating to {language}…** and **Translation failed** labels. Hover over the failed label to see the error.
 - **Retry translation** row action for failed jobs and for jobs stuck in processing for more than 15 minutes.
-- WP-CLI commands: `wp aitfp translate <post_id> --language=<slug> [--async]` and `wp aitfp run <post_id>`.
-- Filters: `aitfp_prompt_builder`, `aitfp_content_chunk_size`, `aitfp_request_timeout`, `aitfp_translated_post_data`, `aitfp_spawn_cron`.
-- Actions: `aitfp_translated`, `aitfp_translation_failed`.
+- WP-CLI commands: `wp twaifp translate <post_id> --language=<slug> [--async]` and `wp twaifp run <post_id>`.
+- Filters: `twaifp_prompt_builder`, `twaifp_content_chunk_size`, `twaifp_request_timeout`, `twaifp_translated_post_data`, `twaifp_spawn_cron`.
+- Actions: `twaifp_translated`, `twaifp_translation_failed`.
 - End-to-end acceptance test, `scripts/acceptance.sh`, documented in `docs/acceptance-test.md`.
 - Uninstall removes the plugin's post meta and scheduled events on every site in a multisite network.
 
-[0.2.0]: https://github.com/soderlind/ai-translator-for-polylang/releases/tag/0.2.0
-[0.1.2]: https://github.com/soderlind/ai-translator-for-polylang/releases/tag/0.1.2
-[0.1.1]: https://github.com/soderlind/ai-translator-for-polylang/releases/tag/0.1.1
-[0.1.0]: https://github.com/soderlind/ai-translator-for-polylang/releases/tag/0.1.0
+[1.0.0]: https://github.com/soderlind/translate-with-ai-for-polylang/releases/tag/1.0.0
+[0.2.0]: https://github.com/soderlind/translate-with-ai-for-polylang/releases/tag/0.2.0
+[0.1.2]: https://github.com/soderlind/translate-with-ai-for-polylang/releases/tag/0.1.2
+[0.1.1]: https://github.com/soderlind/translate-with-ai-for-polylang/releases/tag/0.1.1
+[0.1.0]: https://github.com/soderlind/translate-with-ai-for-polylang/releases/tag/0.1.0

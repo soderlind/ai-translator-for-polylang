@@ -21,14 +21,22 @@ jobs:
         with:
           ref: ${{ github.event.inputs.tag }}
 
+      # Tags before 1.0.0 use the old ai-translator-for-polylang slug and must not be packaged under the new one.
+      - name: Check plugin slug
+        run: |
+          if [ ! -f translate-with-ai-for-polylang.php ]; then
+            echo "::error::Tag ${{ github.event.inputs.tag }} predates the rename to translate-with-ai-for-polylang and cannot be packaged by this workflow."
+            exit 1
+          fi
+
       - name: Stage release files
         run: |
-          mkdir -p /tmp/ai-translator-for-polylang
-          rsync -a --exclude='.git/' --exclude-from='.distignore' . /tmp/ai-translator-for-polylang/
+          mkdir -p /tmp/translate-with-ai-for-polylang
+          rsync -a --exclude='.git/' --exclude-from='.distignore' . /tmp/translate-with-ai-for-polylang/
 
       - name: Archive release
         working-directory: /tmp
-        run: zip -r ${{ github.workspace }}/ai-translator-for-polylang.zip ai-translator-for-polylang/
+        run: zip -r ${{ github.workspace }}/translate-with-ai-for-polylang.zip translate-with-ai-for-polylang/
 
       - name: Upload zip to release
         env:
@@ -36,7 +44,7 @@ jobs:
           TAG: ${{ github.event.inputs.tag }}
         run: |
           if gh release view "$TAG" > /dev/null 2>&1; then
-            gh release upload "$TAG" ai-translator-for-polylang.zip --clobber
+            gh release upload "$TAG" translate-with-ai-for-polylang.zip --clobber
           else
-            gh release create "$TAG" ai-translator-for-polylang.zip --title "$TAG" --generate-notes
+            gh release create "$TAG" translate-with-ai-for-polylang.zip --title "$TAG" --generate-notes
           fi

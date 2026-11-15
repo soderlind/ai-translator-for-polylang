@@ -2,12 +2,12 @@
 /**
  * The seam where translation prompts are sent to an AI model.
  *
- * @package AiTranslatorForPolylang
+ * @package TranslateWithAiForPolylang
  */
 
 declare(strict_types=1);
 
-namespace AiTranslatorForPolylang\Translation;
+namespace Soderlind\TranslateWithAiForPolylang\Translation;
 
 use WP_Error;
 
@@ -23,7 +23,7 @@ interface TextGenerator {
 	 * @param string               $instruction System instruction.
 	 * @param string               $field       Field being translated: title, excerpt or content.
 	 * @param array<string,string> $language    Target language ( code, name, locale ).
-	 * @return string|WP_Error The generated text, aitfp_lock_lost when the before-request
+	 * @return string|WP_Error The generated text, twaifp_lock_lost when the before-request
 	 *                         callback returns false, or a provider error.
 	 */
 	public function generate( string $prompt, string $instruction, string $field, array $language ): string|WP_Error;

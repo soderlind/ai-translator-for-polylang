@@ -2,12 +2,12 @@
 /**
  * Builds translation prompts and reads the replies.
  *
- * @package AiTranslatorForPolylang
+ * @package TranslateWithAiForPolylang
  */
 
 declare(strict_types=1);
 
-namespace AiTranslatorForPolylang\Translation;
+namespace Soderlind\TranslateWithAiForPolylang\Translation;
 
 use WP_Error;
 
@@ -41,19 +41,19 @@ final class Translator {
 		 *
 		 * @param int $chunk_size Characters per chunk.
 		 */
-		$chunk_size = (int) apply_filters( 'aitfp_content_chunk_size', self::DEFAULT_CHUNK_SIZE );
+		$chunk_size = (int) apply_filters( 'twaifp_content_chunk_size', self::DEFAULT_CHUNK_SIZE );
 		/**
 		 * Filters the HTML attributes whose values are translated, e.g. alt and title.
 		 *
 		 * @param list<string> $attributes Attribute names.
 		 */
-		$html_attributes = (array) apply_filters( 'aitfp_translatable_html_attributes', PostContent::HTML_ATTRIBUTES );
+		$html_attributes = (array) apply_filters( 'twaifp_translatable_html_attributes', PostContent::HTML_ATTRIBUTES );
 		/**
 		 * Filters the block attribute keys whose string values are translated, e.g. label and caption.
 		 *
 		 * @param list<string> $attributes Block attribute keys.
 		 */
-		$block_attributes = (array) apply_filters( 'aitfp_translatable_block_attributes', PostContent::BLOCK_ATTRIBUTES );
+		$block_attributes = (array) apply_filters( 'twaifp_translatable_block_attributes', PostContent::BLOCK_ATTRIBUTES );
 
 		return PostContent::translate(
 			$content,

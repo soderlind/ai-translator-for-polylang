@@ -1,11 +1,11 @@
-=== AI Translator for Polylang ===
+=== Translate with AI for Polylang ===
 Contributors: PerS
 Tags: polylang, translation, ai, multilingual, translate
 Requires at least: 7.0
 Tested up to: 7.0
 Requires PHP: 8.3
 Requires Plugins: polylang
-Stable tag: 0.2.0
+Stable tag: 1.0.0
 License: GPL v2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -13,7 +13,7 @@ Click Polylang's "Add a translation" (+) button to create a linked draft that th
 
 == Description ==
 
-AI Translator for Polylang changes what Polylang's "Add a translation" (+) button does. Clicking it now creates a linked draft in the target language, and a background job translates its title, excerpt and content with the WordPress AI Client.
+Translate with AI for Polylang changes what Polylang's "Add a translation" (+) button does. Clicking it now creates a linked draft in the target language, and a background job translates its title, excerpt and content with the WordPress AI Client.
 
 = Features =
 
@@ -24,7 +24,7 @@ AI Translator for Polylang changes what Polylang's "Add a translation" (+) butto
 * Only one worker translates a post at a time, so retries and CLI runs can't race each other.
 * Never overwrites manual edits. If the draft is edited during translation, the AI result is thrown away.
 * A "Retry translation" row action for failed or stuck jobs.
-* WP-CLI commands: `wp aitfp translate` and `wp aitfp run`.
+* WP-CLI commands: `wp twaifp translate` and `wp twaifp run`.
 * Filters and actions for choosing a model, tuning chunk size and timeout, and changing the saved data.
 
 = Requirements =
@@ -37,24 +37,34 @@ AI Translator for Polylang changes what Polylang's "Add a translation" (+) butto
 
 1. Install and activate Polylang, and set up your languages.
 2. Configure an AI provider for the WordPress AI Client.
-3. Upload the plugin to `/wp-content/plugins/ai-translator-for-polylang/` and activate it.
+3. Upload the plugin to `/wp-content/plugins/translate-with-ai-for-polylang/` and activate it.
 4. In a post list, click the + next to a language to create an AI translation.
+
+= Upgrading from AI Translator for Polylang =
+
+This plugin was previously called AI Translator for Polylang (`ai-translator-for-polylang`, version 0.2.0 and earlier). It installs in a new folder and does not replace the old plugin.
+
+1. Wait until no post shows **Translating to {language}…**. This plugin cannot resume translations started by the old plugin.
+2. Deactivate and delete AI Translator for Polylang. If both plugins are active, both handle the + button.
+3. Install and activate Translate with AI for Polylang.
+
+If a draft was left unfinished, delete it permanently and click + again to create a new translation.
 
 == Frequently Asked Questions ==
 
 = How do I choose the AI model? =
 
-Use the `aitfp_prompt_builder` filter:
+Use the `twaifp_prompt_builder` filter:
 
-`add_filter( 'aitfp_prompt_builder', fn( $builder ) => $builder->using_model_preference( 'gpt-5-mini' ) );`
+`add_filter( 'twaifp_prompt_builder', fn( $builder ) => $builder->using_model_preference( 'gpt-5-mini' ) );`
 
 = The translation is stuck. What do I do? =
 
-The plugin runs WP-Cron right after it queues a job. If your site blocks loopback requests, run `wp cron event run --due-now`, or translate right away with `wp aitfp run <post_id>`. Jobs stuck in processing for more than 15 minutes get a "Retry translation" link.
+The plugin runs WP-Cron right after it queues a job. If your site blocks loopback requests, run `wp cron event run --due-now`, or translate right away with `wp twaifp run <post_id>`. Jobs stuck in processing for more than 15 minutes get a "Retry translation" link.
 
 = Why did the translation fail? =
 
-Hover over "Translation failed" in the post list to read the error. Common causes: the AI didn't return one translation per text segment, someone edited the draft during translation, or the AI request timed out. For long posts, try raising `aitfp_request_timeout` or lowering `aitfp_content_chunk_size`.
+Hover over "Translation failed" in the post list to read the error. Common causes: the AI didn't return one translation per text segment, someone edited the draft during translation, or the AI request timed out. For long posts, try raising `twaifp_request_timeout` or lowering `twaifp_content_chunk_size`.
 
 = Is the translation published automatically? =
 
@@ -62,16 +72,26 @@ No. Translations are saved as drafts so you can review them before you publish.
 
 = What hooks are available? =
 
-Filters: `aitfp_prompt_builder`, `aitfp_content_chunk_size`, `aitfp_request_timeout`, `aitfp_translatable_html_attributes`, `aitfp_translatable_block_attributes`, `aitfp_translated_post_data`, `aitfp_spawn_cron`.
-Actions: `aitfp_translated`, `aitfp_translation_failed`.
+Filters: `twaifp_prompt_builder`, `twaifp_content_chunk_size`, `twaifp_request_timeout`, `twaifp_translatable_html_attributes`, `twaifp_translatable_block_attributes`, `twaifp_translated_post_data`, `twaifp_spawn_cron`.
+Actions: `twaifp_translated`, `twaifp_translation_failed`.
 
 See README.md for arguments.
 
+== Upgrade Notice ==
+
+= 1.0.0 =
+Renamed from AI Translator for Polylang. Let pending translations finish, then deactivate and delete the old plugin before activating this one.
+
 == Changelog ==
+
+= 1.0.0 =
+* Renamed the plugin to "Translate with AI for Polylang" (slug and text domain `translate-with-ai-for-polylang`), because the old slug is already taken on WordPress.org.
+* The main plugin file is now `translate-with-ai-for-polylang.php`, and the PHP namespace is `Soderlind\TranslateWithAiForPolylang`.
+* The prefix for hooks, post meta, options, constants and the WP-CLI command changed from `aitfp` to `twaifp` (`wp twaifp`). Translation status saved by earlier versions is not carried over.
 
 = 0.2.0 =
 * The AI now gets only the text of the content, never the markup. Translations are written back into the original markup with the WordPress HTML API.
-* New filters `aitfp_translatable_html_attributes` and `aitfp_translatable_block_attributes` choose which attributes are translated.
+* New filters `twaifp_translatable_html_attributes` and `twaifp_translatable_block_attributes` choose which attributes are translated.
 * Text inside `<code>`, `<kbd>` and `<samp>` is no longer translated. Text in `<textarea>` and `<title>` now is.
 * A translation that has stopped responding shows a retry link in the notice.
 * Fix: images could break in translated drafts.

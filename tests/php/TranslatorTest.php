@@ -2,14 +2,14 @@
 /**
  * Tests for Translator.
  *
- * @package AiTranslatorForPolylang\Tests
+ * @package TranslateWithAiForPolylang\Tests
  */
 
 declare(strict_types=1);
 
-namespace AiTranslatorForPolylang\Tests;
+namespace Soderlind\TranslateWithAiForPolylang\Tests;
 
-use AiTranslatorForPolylang\Translation\Translator;
+use Soderlind\TranslateWithAiForPolylang\Translation\Translator;
 use WP_Error;
 
 final class TranslatorTest extends TestCase {
@@ -45,6 +45,6 @@ final class TranslatorTest extends TestCase {
 		$result    = ( new Translator( $generator ) )->translate_content( '<p>Hello</p>', self::LANGUAGE );
 
 		$this->assertInstanceOf( WP_Error::class, $result );
-		$this->assertSame( 'aitfp_segment_mismatch', $result->get_error_code() );
+		$this->assertSame( 'twaifp_segment_mismatch', $result->get_error_code() );
 	}
 }

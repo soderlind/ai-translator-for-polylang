@@ -2,12 +2,12 @@
 /**
  * Base test case that mocks WordPress functions with Brain Monkey.
  *
- * @package AiTranslatorForPolylang\Tests
+ * @package TranslateWithAiForPolylang\Tests
  */
 
 declare(strict_types=1);
 
-namespace AiTranslatorForPolylang\Tests;
+namespace Soderlind\TranslateWithAiForPolylang\Tests;
 
 use Brain\Monkey;
 use Brain\Monkey\Functions;
