@@ -2,7 +2,7 @@
 
 Click Polylang's **Add a translation** (+) button and get a linked draft that the WordPress AI Client translates in the background.
 
-https://github.com/user-attachments/assets/124428fc-4556-489d-8fb7-6e568d9ab404
+https://github.com/user-attachments/assets/2f8c51da-143d-496f-9f88-2c5d5382d644
 
 ## Requirements
 
