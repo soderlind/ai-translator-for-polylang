@@ -84,7 +84,7 @@ add_filter( 'twaifp_prompt_builder', function ( $builder ) {
 
 ## Upgrading from AI Translator for Polylang
 
-This plugin was previously called AI Translator for Polylang (`ai-translator-for-polylang`, version 0.2.0 and earlier). It installs in a new folder and does not replace the old plugin.
+The plugin was renamed because another WordPress.org plugin already uses the name **AI Translator for Polylang** and the slug `ai-translator-for-polylang` ([see its listing](https://wordpress.org/plugins/ai-translator-for-polylang/)). This plugin was previously called AI Translator for Polylang (version 0.2.0 and earlier). It installs in a new folder and does not replace the old plugin.
 
 1. Wait until no post shows **Translating to {language}…**. This plugin cannot resume translations started by the old plugin.
 2. Deactivate and delete AI Translator for Polylang. If both plugins are active, both handle the + button.
